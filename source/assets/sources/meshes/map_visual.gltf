@@ -1,0 +1,434 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "gokeen-assetconv"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "map2b.b3d",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "map2b.b3d",
+      "mesh": 0
+    }
+  ],
+  "meshes": [
+    {
+      "name": "map2b.b3d",
+      "primitives": [
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 5,
+          "material": 0,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 6,
+          "material": 1,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 7,
+          "material": 2,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 8,
+          "material": 3,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "brush_3_e:\\hub\\my dev\\my games\\keen\\map\\mars1a.bmp",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_map_brush_3_e_hub_my_dev_my_games_keen_map_mars1a_bmp_3",
+          "layers": [
+            {
+              "blend": 2,
+              "flags": 9,
+              "texture": "tex_levels_level1_mars1a_bmp_26913905",
+              "textureIndex": 0,
+              "uvSet": 0
+            },
+            {
+              "blend": 2,
+              "flags": 65593,
+              "texture": "tex_missing",
+              "textureIndex": 1,
+              "uvSet": 1
+            }
+          ],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            0.15,
+            0.15,
+            0.15
+          ]
+        }
+      }
+    },
+    {
+      "name": "brush_2_e:\\hub\\my dev\\my games\\keen\\map\\mars1a2.bmp",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 2
+        },
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_map_brush_2_e_hub_my_dev_my_games_keen_map_mars1a2_bmp_2",
+          "layers": [
+            {
+              "blend": 2,
+              "flags": 9,
+              "texture": "tex_map_mars1a2_bmp_cca2bd5c",
+              "textureIndex": 2,
+              "uvSet": 0
+            },
+            {
+              "blend": 2,
+              "flags": 65593,
+              "texture": "tex_missing",
+              "textureIndex": 1,
+              "uvSet": 1
+            }
+          ],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            0.15,
+            0.15,
+            0.15
+          ]
+        }
+      }
+    },
+    {
+      "name": "brush_1_e:\\hub\\my dev\\my games\\keen\\map\\map2b_lm.bmp",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 1
+        },
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_map_brush_1_e_hub_my_dev_my_games_keen_map_map2b_lm_bmp_1",
+          "layers": [
+            {
+              "blend": 2,
+              "flags": 9,
+              "texture": "tex_missing",
+              "textureIndex": 1,
+              "uvSet": 0
+            },
+            {
+              "blend": 2,
+              "flags": 65593,
+              "texture": "tex_missing",
+              "textureIndex": 1,
+              "uvSet": 1
+            }
+          ],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            0.15,
+            0.15,
+            0.15
+          ]
+        }
+      }
+    },
+    {
+      "name": "brush_0_e:\\hub\\my dev\\my games\\keen\\map\\mars3a.bmp",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 3
+        },
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_map_brush_0_e_hub_my_dev_my_games_keen_map_mars3a_bmp_0",
+          "layers": [
+            {
+              "blend": 2,
+              "flags": 9,
+              "texture": "tex_map_mars3a_bmp_546eec1a",
+              "textureIndex": 3,
+              "uvSet": 0
+            },
+            {
+              "blend": 2,
+              "flags": 65593,
+              "texture": "tex_missing",
+              "textureIndex": 1,
+              "uvSet": 1
+            }
+          ],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            0.15,
+            0.15,
+            0.15
+          ]
+        }
+      }
+    }
+  ],
+  "textures": [
+    {
+      "name": "tex_levels_level1_mars1a_bmp_26913905",
+      "source": 0,
+      "sampler": 0
+    },
+    {
+      "name": "tex_missing",
+      "source": 1,
+      "sampler": 0
+    },
+    {
+      "name": "tex_map_mars1a2_bmp_cca2bd5c",
+      "source": 2,
+      "sampler": 0
+    },
+    {
+      "name": "tex_map_mars3a_bmp_546eec1a",
+      "source": 3,
+      "sampler": 0
+    }
+  ],
+  "images": [
+    {
+      "name": "tex_levels_level1_mars1a_bmp_26913905",
+      "uri": "textures/tex_levels_level1_mars1a_bmp_26913905.png"
+    },
+    {
+      "name": "tex_missing",
+      "uri": "textures/tex_missing.png"
+    },
+    {
+      "name": "tex_map_mars1a2_bmp_cca2bd5c",
+      "uri": "textures/tex_map_mars1a2_bmp_cca2bd5c.png"
+    },
+    {
+      "name": "tex_map_mars3a_bmp_546eec1a",
+      "uri": "textures/tex_map_mars3a_bmp_546eec1a.png"
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987,
+      "wrapS": 10497,
+      "wrapT": 10497
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 9988,
+      "type": "VEC3",
+      "min": [
+        0,
+        -1.4039214,
+        -500
+      ],
+      "max": [
+        500,
+        41.46237,
+        0
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 9988,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 9988,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 9988,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5121,
+      "normalized": true,
+      "count": 9988,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5125,
+      "count": 23814,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 6,
+      "componentType": 5125,
+      "count": 9984,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 7,
+      "componentType": 5125,
+      "count": 6321,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 8,
+      "componentType": 5125,
+      "count": 13407,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 119856,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 119856,
+      "byteLength": 119856,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 239712,
+      "byteLength": 79904,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 319616,
+      "byteLength": 79904,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 399520,
+      "byteLength": 39952,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 439472,
+      "byteLength": 95256,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 534728,
+      "byteLength": 39936,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 574664,
+      "byteLength": 25284,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 599948,
+      "byteLength": 53628,
+      "target": 34963
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "map_visual.bin",
+      "byteLength": 653576
+    }
+  ]
+}

@@ -1,0 +1,807 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "gokeen-assetconv"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Level2ba.b3d",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "Level2ba.b3d",
+      "mesh": 0
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Level2ba.b3d",
+      "primitives": [
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 5,
+          "material": 0,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 6,
+          "material": 0,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 7,
+          "material": 0,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 8,
+          "material": 0,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 9,
+          "material": 0,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 10,
+          "material": 0,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 11,
+          "material": 1,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 12,
+          "material": 2,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 13,
+          "material": 3,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 14,
+          "material": 4,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 15,
+          "material": 5,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 16,
+          "material": 6,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 17,
+          "material": 7,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "C:\\Program Files\\Maplet\\Keen64\\BlockGray.bmp",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_level2_c_program_files_maplet_keen64_blockgray_bmp_0",
+          "layers": [
+            {
+              "blend": 2,
+              "flags": 1,
+              "texture": "tex_levels_level2_blockgray_bmp_b165c5eb",
+              "textureIndex": 0,
+              "uvSet": 0
+            }
+          ],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            0.15,
+            0.15,
+            0.15
+          ]
+        }
+      }
+    },
+    {
+      "name": "Yorp-Statue-Shine",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 1
+        },
+        "metallicFactor": 0,
+        "roughnessFactor": 0.75
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_level2_yorp_statue_shine_5",
+          "layers": [
+            {
+              "blend": 2,
+              "flags": 9,
+              "texture": "tex_levels_level2_statuemo_png_953c75f5",
+              "textureIndex": 1,
+              "uvSet": 0
+            },
+            {
+              "blend": 2,
+              "flags": 73,
+              "texture": "tex_levels_level2_cone1lid_bmp_040c064a",
+              "textureIndex": 2,
+              "uvSet": 0
+            }
+          ],
+          "lightmapUv": 1,
+          "shininess": 32,
+          "specular": [
+            0.15,
+            0.15,
+            0.15
+          ]
+        }
+      }
+    },
+    {
+      "name": "bright",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          0.5999999
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.75
+      },
+      "alphaMode": "BLEND",
+      "extras": {
+        "gokeen": {
+          "alphaMode": 2,
+          "id": "mat_level2_bright_6",
+          "layers": [],
+          "lightmapUv": 1,
+          "shininess": 32,
+          "specular": [
+            0.15,
+            0.15,
+            0.15
+          ]
+        }
+      }
+    },
+    {
+      "name": "C:\\Program Files\\Maplet\\Keen64\\Mars1a.bmp",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 3
+        },
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_level2_c_program_files_maplet_keen64_mars1a_bmp_7",
+          "layers": [
+            {
+              "blend": 2,
+              "flags": 1,
+              "texture": "tex_levels_level1_mars1a_bmp_26913905",
+              "textureIndex": 3,
+              "uvSet": 0
+            }
+          ],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            0.15,
+            0.15,
+            0.15
+          ]
+        }
+      }
+    },
+    {
+      "name": "C:\\Program Files\\Maplet\\Keen64\\BlockLtGray.bmp",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 4
+        },
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_level2_c_program_files_maplet_keen64_blockltgray_bmp_8",
+          "layers": [
+            {
+              "blend": 2,
+              "flags": 1,
+              "texture": "tex_levels_level2_blockltgray_bmp_6c4966c3",
+              "textureIndex": 4,
+              "uvSet": 0
+            }
+          ],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            0.15,
+            0.15,
+            0.15
+          ]
+        }
+      }
+    },
+    {
+      "name": "C:\\Program Files\\Maplet\\Keen64\\Black.bmp",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 5
+        },
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_level2_c_program_files_maplet_keen64_black_bmp_9",
+          "layers": [
+            {
+              "blend": 2,
+              "flags": 1,
+              "texture": "tex_levels_level1_black_bmp_bf4213eb",
+              "textureIndex": 5,
+              "uvSet": 0
+            }
+          ],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            0.15,
+            0.15,
+            0.15
+          ]
+        }
+      }
+    },
+    {
+      "name": "C:\\Program Files\\Maplet\\Keen\\KeenP\\Textures\\exit blue.bmp",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 6
+        },
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_level2_c_program_files_maplet_keen_keenp_textures_exit_blue_bmp_10",
+          "layers": [
+            {
+              "blend": 2,
+              "flags": 1,
+              "texture": "tex_levels_level1_exit_blue_bmp_36a4fb74",
+              "textureIndex": 6,
+              "uvSet": 0
+            }
+          ],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            0.15,
+            0.15,
+            0.15
+          ]
+        }
+      }
+    },
+    {
+      "name": "C:\\Program Files\\Maplet\\Keen\\KeenP\\Textures\\exit purple.bmp",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 7
+        },
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_level2_c_program_files_maplet_keen_keenp_textures_exit_purple_bmp_11",
+          "layers": [
+            {
+              "blend": 2,
+              "flags": 1,
+              "texture": "tex_levels_level1_exit_purple_bmp_bf537716",
+              "textureIndex": 7,
+              "uvSet": 0
+            }
+          ],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            0.15,
+            0.15,
+            0.15
+          ]
+        }
+      }
+    }
+  ],
+  "textures": [
+    {
+      "name": "tex_levels_level2_blockgray_bmp_b165c5eb",
+      "source": 0,
+      "sampler": 0
+    },
+    {
+      "name": "tex_levels_level2_statuemo_png_953c75f5",
+      "source": 1,
+      "sampler": 0
+    },
+    {
+      "name": "tex_levels_level2_cone1lid_bmp_040c064a",
+      "source": 2,
+      "sampler": 0
+    },
+    {
+      "name": "tex_levels_level1_mars1a_bmp_26913905",
+      "source": 3,
+      "sampler": 0
+    },
+    {
+      "name": "tex_levels_level2_blockltgray_bmp_6c4966c3",
+      "source": 4,
+      "sampler": 0
+    },
+    {
+      "name": "tex_levels_level1_black_bmp_bf4213eb",
+      "source": 5,
+      "sampler": 0
+    },
+    {
+      "name": "tex_levels_level1_exit_blue_bmp_36a4fb74",
+      "source": 6,
+      "sampler": 0
+    },
+    {
+      "name": "tex_levels_level1_exit_purple_bmp_bf537716",
+      "source": 7,
+      "sampler": 0
+    }
+  ],
+  "images": [
+    {
+      "name": "tex_levels_level2_blockgray_bmp_b165c5eb",
+      "uri": "textures/tex_levels_level2_blockgray_bmp_b165c5eb.png"
+    },
+    {
+      "name": "tex_levels_level2_statuemo_png_953c75f5",
+      "uri": "textures/tex_levels_level2_statuemo_png_953c75f5.png"
+    },
+    {
+      "name": "tex_levels_level2_cone1lid_bmp_040c064a",
+      "uri": "textures/tex_levels_level2_cone1lid_bmp_040c064a.png"
+    },
+    {
+      "name": "tex_levels_level1_mars1a_bmp_26913905",
+      "uri": "textures/tex_levels_level1_mars1a_bmp_26913905.png"
+    },
+    {
+      "name": "tex_levels_level2_blockltgray_bmp_6c4966c3",
+      "uri": "textures/tex_levels_level2_blockltgray_bmp_6c4966c3.png"
+    },
+    {
+      "name": "tex_levels_level1_black_bmp_bf4213eb",
+      "uri": "textures/tex_levels_level1_black_bmp_bf4213eb.png"
+    },
+    {
+      "name": "tex_levels_level1_exit_blue_bmp_36a4fb74",
+      "uri": "textures/tex_levels_level1_exit_blue_bmp_36a4fb74.png"
+    },
+    {
+      "name": "tex_levels_level1_exit_purple_bmp_bf537716",
+      "uri": "textures/tex_levels_level1_exit_purple_bmp_bf537716.png"
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987,
+      "wrapS": 10497,
+      "wrapT": 10497
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 877,
+      "type": "VEC3",
+      "min": [
+        -16,
+        0,
+        -16
+      ],
+      "max": [
+        16,
+        22,
+        16
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 877,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 877,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 877,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5121,
+      "normalized": true,
+      "count": 877,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5125,
+      "count": 36,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 6,
+      "componentType": 5125,
+      "count": 36,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 7,
+      "componentType": 5125,
+      "count": 36,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 8,
+      "componentType": 5125,
+      "count": 36,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 9,
+      "componentType": 5125,
+      "count": 36,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 10,
+      "componentType": 5125,
+      "count": 36,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 11,
+      "componentType": 5125,
+      "count": 900,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 12,
+      "componentType": 5125,
+      "count": 900,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 13,
+      "componentType": 5125,
+      "count": 6,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 14,
+      "componentType": 5125,
+      "count": 366,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 15,
+      "componentType": 5125,
+      "count": 30,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 16,
+      "componentType": 5125,
+      "count": 159,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 17,
+      "componentType": 5125,
+      "count": 27,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 10524,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 10524,
+      "byteLength": 10524,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 21048,
+      "byteLength": 7016,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 28064,
+      "byteLength": 7016,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 35080,
+      "byteLength": 3508,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 38588,
+      "byteLength": 144,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 38732,
+      "byteLength": 144,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 38876,
+      "byteLength": 144,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 39020,
+      "byteLength": 144,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 39164,
+      "byteLength": 144,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 39308,
+      "byteLength": 144,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 39452,
+      "byteLength": 3600,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 43052,
+      "byteLength": 3600,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 46652,
+      "byteLength": 24,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 46676,
+      "byteLength": 1464,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 48140,
+      "byteLength": 120,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 48260,
+      "byteLength": 636,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 48896,
+      "byteLength": 108,
+      "target": 34963
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "level2_visual.bin",
+      "byteLength": 49004
+    }
+  ]
+}

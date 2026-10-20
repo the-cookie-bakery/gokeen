@@ -1,0 +1,63 @@
+{
+  "format_version": 2,
+  "id": "map",
+  "name": "Map",
+  "metadata": {
+    "author": "legacy-import",
+    "notes": "Generated seed. Entity placement still requires manual review."
+  },
+  "environment": {
+    "ambient": [
+      0.19,
+      0.19,
+      0.19
+    ],
+    "sun": {
+      "direction": [
+        -0.4,
+        -1,
+        0.2
+      ],
+      "color": [
+        1,
+        1,
+        1
+      ],
+      "intensity": 1
+    }
+  },
+  "geometry": [
+    {
+      "id": "static",
+      "mesh": "map_visual",
+      "collision": "map_collision",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "spawn": {
+    "position": [
+      250,
+      22.029224,
+      -250
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ]
+  },
+  "entities": [],
+  "lights": [],
+  "triggers": []
+}

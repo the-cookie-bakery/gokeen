@@ -1,0 +1,86 @@
+{
+  "format_version": 2,
+  "id": "level1",
+  "name": "Level 1",
+  "metadata": {
+    "author": "legacy-import",
+    "notes": "Generated seed. Entity placement still requires manual review."
+  },
+  "environment": {
+    "ambient": [
+      0.19,
+      0.19,
+      0.19
+    ],
+    "sun": {
+      "direction": [
+        -0.4,
+        -1,
+        0.2
+      ],
+      "color": [
+        1,
+        1,
+        1
+      ],
+      "intensity": 1
+    }
+  },
+  "geometry": [
+    {
+      "id": "static",
+      "mesh": "level1_visual",
+      "collision": "level1_collision",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "spawn": {
+    "position": [
+      -0.029125214,
+      11.5,
+      -13.479126
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ]
+  },
+  "entities": [
+    {
+      "id": "yorp_01",
+      "type": "yorp",
+      "transform": {
+        "position": [
+          -0.029125214,
+          11.5,
+          -15.979126
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "properties": {}
+    }
+  ],
+  "lights": [],
+  "triggers": []
+}

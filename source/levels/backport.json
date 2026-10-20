@@ -1,0 +1,55 @@
+{
+  "format_version": 1,
+  "levels": [
+    {
+      "id": "map",
+      "json_path": "data/map.json",
+      "legacy_mesh": "Map/map2b.b3d",
+      "status": "imported",
+      "notes": "Hub level. Entrances and level links are authored manually."
+    },
+    {
+      "id": "level1",
+      "json_path": "data/level1.json",
+      "legacy_mesh": "Levels/Level1/Level1.b3d",
+      "entity_data": "Levels/Level1/level1.dat",
+      "status": "imported",
+      "notes": "Needs multi-UV lightmaps, layered materials, and .dat layout verification."
+    },
+    {
+      "id": "level2",
+      "json_path": "data/level2.json",
+      "legacy_mesh": "Levels/Level2/Level2ba.b3d",
+      "entity_data": "Levels/Level2/level2.dat",
+      "status": "imported",
+      "notes": "Use Level2ba.b3d because that is what the original executable loads."
+    },
+    {
+      "id": "level5",
+      "json_path": "data/level5.json",
+      "legacy_mesh": "Levels/Level5/Level5a_gls.b3d",
+      "status": "imported",
+      "notes": "No .dat file. Pogo/entity placement is authored manually."
+    },
+    {
+      "id": "level3",
+      "legacy_mesh": "Levels/Level3/Level3.b3d",
+      "entity_data": "Levels/Level3/level3.dat",
+      "status": "missing-source",
+      "notes": "Referenced by the original executable but assets are absent."
+    },
+    {
+      "id": "level4",
+      "legacy_mesh": "Levels/Level4/Level4.b3d",
+      "entity_data": "Levels/Level4/level4.dat",
+      "status": "missing-source",
+      "notes": "Referenced by the original executable but assets are absent."
+    },
+    {
+      "id": "level16",
+      "legacy_mesh": "Levels/Level16/Level16.b3d",
+      "status": "missing-source",
+      "notes": "Referenced by the original executable but assets are absent."
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "format_version": 1,
+  "assets": [
+    {
+      "id": "map_visual",
+      "kind": "mesh",
+      "path": "meshes/map_visual.gltf",
+      "legacy_source": "Map/map2b.b3d",
+      "mesh_id": "map_visual"
+    },
+    {
+      "id": "level1_visual",
+      "kind": "mesh",
+      "path": "meshes/level1_visual.gltf",
+      "legacy_source": "Levels/Level1/Level1.b3d",
+      "mesh_id": "level1_visual"
+    },
+    {
+      "id": "level2_visual",
+      "kind": "mesh",
+      "path": "meshes/level2_visual.gltf",
+      "legacy_source": "Levels/Level2/Level2ba.b3d",
+      "mesh_id": "level2_visual"
+    },
+    {
+      "id": "level5_visual",
+      "kind": "mesh",
+      "path": "meshes/level5_visual.gltf",
+      "legacy_source": "Levels/Level5/Level5a_gls.b3d",
+      "mesh_id": "level5_visual"
+    },
+    {
+      "id": "player_keen",
+      "kind": "model",
+      "path": "meshes/player_keen.gltf",
+      "legacy_source": "Keen3f/Keen3f.3ds",
+      "mesh_id": "player_keen"
+    },
+    {
+      "id": "yorp",
+      "kind": "model",
+      "path": "meshes/yorp.gltf",
+      "legacy_source": "NPC/Yorp1h/YorpStand.3ds",
+      "mesh_id": "yorp"
+    }
+  ]
+}

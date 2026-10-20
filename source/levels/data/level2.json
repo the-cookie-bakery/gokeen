@@ -1,0 +1,63 @@
+{
+  "format_version": 2,
+  "id": "level2",
+  "name": "Level 2",
+  "metadata": {
+    "author": "legacy-import",
+    "notes": "Generated seed. Entity placement still requires manual review."
+  },
+  "environment": {
+    "ambient": [
+      0.19,
+      0.19,
+      0.19
+    ],
+    "sun": {
+      "direction": [
+        -0.4,
+        -1,
+        0.2
+      ],
+      "color": [
+        1,
+        1,
+        1
+      ],
+      "intensity": 1
+    }
+  },
+  "geometry": [
+    {
+      "id": "static",
+      "mesh": "level2_visual",
+      "collision": "level2_collision",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "spawn": {
+    "position": [
+      0,
+      13,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ]
+  },
+  "entities": [],
+  "lights": [],
+  "triggers": []
+}

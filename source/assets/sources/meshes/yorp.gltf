@@ -1,0 +1,346 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "gokeen-assetconv"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "YorpStand.3ds",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "YorpStand.3ds",
+      "mesh": 0
+    }
+  ],
+  "meshes": [
+    {
+      "name": "YorpStand.3ds",
+      "primitives": [
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 5,
+          "material": 0,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 6,
+          "material": 1,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 7,
+          "material": 2,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 8,
+          "material": 3,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "White",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.4375
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_yorp_white_2",
+          "layers": [],
+          "lightmapUv": 1,
+          "shininess": 72,
+          "specular": [
+            1,
+            1,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "name": "Skin",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0,
+          0.8862745,
+          0,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_yorp_skin_1",
+          "layers": [],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    {
+      "name": "cube2_auv",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_yorp_cube2_auv_3",
+          "layers": [
+            {
+              "blend": 0,
+              "flags": 0,
+              "texture": "tex_npc_yorp1h_mouthuv1_png_7c4b62c1",
+              "textureIndex": 0,
+              "uvSet": 0
+            }
+          ],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            1,
+            1,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "name": "Black",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_yorp_black_0",
+          "layers": [],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            1,
+            1,
+            1
+          ]
+        }
+      }
+    }
+  ],
+  "textures": [
+    {
+      "name": "tex_npc_yorp1h_mouthuv1_png_7c4b62c1",
+      "source": 0,
+      "sampler": 0
+    }
+  ],
+  "images": [
+    {
+      "name": "tex_npc_yorp1h_mouthuv1_png_7c4b62c1",
+      "uri": "textures/tex_npc_yorp1h_mouthuv1_png_7c4b62c1.png"
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987,
+      "wrapS": 10497,
+      "wrapT": 10497
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 182,
+      "type": "VEC3",
+      "min": [
+        -0.82956,
+        -0.33083007,
+        0.07072982
+      ],
+      "max": [
+        0.82956,
+        2.6622357,
+        1.5183206
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 182,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 182,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 182,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5121,
+      "normalized": true,
+      "count": 182,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5125,
+      "count": 48,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 6,
+      "componentType": 5125,
+      "count": 738,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 7,
+      "componentType": 5125,
+      "count": 138,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 8,
+      "componentType": 5125,
+      "count": 24,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 2184,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 2184,
+      "byteLength": 2184,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 4368,
+      "byteLength": 1456,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 5824,
+      "byteLength": 1456,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 7280,
+      "byteLength": 728,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 8008,
+      "byteLength": 192,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 8200,
+      "byteLength": 2952,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 11152,
+      "byteLength": 552,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 11704,
+      "byteLength": 96,
+      "target": 34963
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "yorp.bin",
+      "byteLength": 11800
+    }
+  ]
+}
