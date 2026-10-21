@@ -42,6 +42,48 @@
       "path": "meshes/yorp.gltf",
       "legacy_source": "NPC/Yorp1h/YorpStand.3ds",
       "mesh_id": "yorp"
+    },
+    {
+      "id": "item_pogo",
+      "kind": "model",
+      "path": "meshes/item_pogo.gltf",
+      "legacy_source": "Items/Pogo.3ds",
+      "mesh_id": "item_pogo"
+    },
+    {
+      "id": "item_gun",
+      "kind": "model",
+      "path": "meshes/item_gun.gltf",
+      "legacy_source": "Items/Gun4.3ds",
+      "mesh_id": "item_gun"
+    },
+    {
+      "id": "item_key",
+      "kind": "model",
+      "path": "meshes/item_key.gltf",
+      "legacy_source": "Items/Key.3ds",
+      "mesh_id": "item_key"
+    },
+    {
+      "id": "item_pizza",
+      "kind": "model",
+      "path": "meshes/item_pizza.gltf",
+      "legacy_source": "Items/Pizza.3ds",
+      "mesh_id": "item_pizza"
+    },
+    {
+      "id": "item_soda",
+      "kind": "model",
+      "path": "meshes/item_soda.gltf",
+      "legacy_source": "Items/Soda/Soda.3ds",
+      "mesh_id": "item_soda"
+    },
+    {
+      "id": "exit_sign",
+      "kind": "model",
+      "path": "meshes/exit_sign.gltf",
+      "legacy_source": "Items/Sign/ExitSign.3ds",
+      "mesh_id": "exit_sign"
     }
   ]
 }

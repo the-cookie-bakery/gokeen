@@ -19,50 +19,55 @@ import (
 )
 
 type Renderer struct {
-	instance         C.VkInstance
-	surface          C.VkSurfaceKHR
-	physical         C.VkPhysicalDevice
-	device           C.VkDevice
-	graphicsQueue    C.VkQueue
-	presentQueue     C.VkQueue
-	queueFamily      uint32
-	swapchain        C.VkSwapchainKHR
-	swapFormat       C.VkFormat
-	swapExtent       C.VkExtent2D
-	images           []C.VkImage
-	imageViews       []C.VkImageView
-	renderPass       C.VkRenderPass
-	framebuffers     []C.VkFramebuffer
-	commandPool      C.VkCommandPool
-	commandBuffers   []C.VkCommandBuffer
-	imageAvailable   C.VkSemaphore
-	renderFinished   C.VkSemaphore
-	inFlight         C.VkFence
-	window           *sdl2.Window
-	width            int
-	height           int
-	depthFormat      C.VkFormat
-	depthImage       C.VkImage
-	depthMemory      C.VkDeviceMemory
-	depthView        C.VkImageView
-	descriptorLayout C.VkDescriptorSetLayout
-	pipelineLayout   C.VkPipelineLayout
-	pipeline         C.VkPipeline
-	descriptorPool   C.VkDescriptorPool
-	uniformBuffer    C.VkBuffer
-	uniformMemory    C.VkDeviceMemory
-	uniformMapped    unsafe.Pointer
-	whiteTexture     *gpuTexture
-	meshes           map[assets.MeshID]*gpuMesh
-	materials        map[assets.MaterialID]*gpuMaterial
-	textures         map[assets.TextureID]*gpuTexture
-	draws            []drawItem
-	instances        []*MeshInstance
-	viewProjection   maths.Mat4
-	cameraPosition   maths.Vec3
-	lightDirection   [4]float32
-	lightColor       [4]float32
-	ambientColor     [4]float32
+	instance              C.VkInstance
+	surface               C.VkSurfaceKHR
+	physical              C.VkPhysicalDevice
+	device                C.VkDevice
+	graphicsQueue         C.VkQueue
+	presentQueue          C.VkQueue
+	queueFamily           uint32
+	swapchain             C.VkSwapchainKHR
+	swapFormat            C.VkFormat
+	swapExtent            C.VkExtent2D
+	images                []C.VkImage
+	imageViews            []C.VkImageView
+	renderPass            C.VkRenderPass
+	framebuffers          []C.VkFramebuffer
+	commandPool           C.VkCommandPool
+	commandBuffers        []C.VkCommandBuffer
+	imageAvailable        C.VkSemaphore
+	renderFinished        C.VkSemaphore
+	inFlight              C.VkFence
+	window                *sdl2.Window
+	width                 int
+	height                int
+	depthFormat           C.VkFormat
+	depthImage            C.VkImage
+	depthMemory           C.VkDeviceMemory
+	depthView             C.VkImageView
+	descriptorLayout      C.VkDescriptorSetLayout
+	pipelineLayout        C.VkPipelineLayout
+	pipeline              C.VkPipeline
+	skinnedPipeline       C.VkPipeline
+	skinnedPipelineLayout C.VkPipelineLayout
+	boneLayout            C.VkDescriptorSetLayout
+	bonePool              C.VkDescriptorPool
+	descriptorPool        C.VkDescriptorPool
+	uniformBuffer         C.VkBuffer
+	uniformMemory         C.VkDeviceMemory
+	uniformMapped         unsafe.Pointer
+	whiteTexture          *gpuTexture
+	meshes                map[assets.MeshID]*gpuMesh
+	materials             map[assets.MaterialID]*gpuMaterial
+	textures              map[assets.TextureID]*gpuTexture
+	draws                 []drawItem
+	instances             []*MeshInstance
+	skinnedInstances      []*SkinnedInstance
+	viewProjection        maths.Mat4
+	cameraPosition        maths.Vec3
+	lightDirection        [4]float32
+	lightColor            [4]float32
+	ambientColor          [4]float32
 }
 
 func New(window *sdl2.Window, width, height int) (*Renderer, error) {
@@ -117,6 +122,14 @@ func New(window *sdl2.Window, width, height int) (*Renderer, error) {
 	if res := C.gk_vk_create_descriptor_layout(r.device, &r.descriptorLayout); res != 0 {
 		r.Destroy()
 		return nil, fmt.Errorf("descriptor layout: %d", int(res))
+	}
+	if res := C.gk_vk_create_descriptor_layout_bones(r.device, &r.boneLayout); res != 0 {
+		r.Destroy()
+		return nil, fmt.Errorf("bone descriptor layout: %d", int(res))
+	}
+	if res := C.gk_vk_create_descriptor_pool(r.device, 64, &r.bonePool); res != 0 {
+		r.Destroy()
+		return nil, fmt.Errorf("bone descriptor pool: %d", int(res))
 	}
 	if err := r.createUniformBuffer(); err != nil {
 		r.Destroy()
@@ -378,14 +391,26 @@ func (r *Renderer) Destroy() {
 		if r.pipeline != nil {
 			C.vkDestroyPipeline(r.device, r.pipeline, nil)
 		}
+		if r.skinnedPipeline != nil {
+			C.vkDestroyPipeline(r.device, r.skinnedPipeline, nil)
+		}
 		if r.pipelineLayout != nil {
 			C.vkDestroyPipelineLayout(r.device, r.pipelineLayout, nil)
+		}
+		if r.skinnedPipelineLayout != nil {
+			C.vkDestroyPipelineLayout(r.device, r.skinnedPipelineLayout, nil)
 		}
 		if r.descriptorPool != nil {
 			C.vkDestroyDescriptorPool(r.device, r.descriptorPool, nil)
 		}
 		if r.descriptorLayout != nil {
 			C.vkDestroyDescriptorSetLayout(r.device, r.descriptorLayout, nil)
+		}
+		if r.bonePool != nil {
+			C.vkDestroyDescriptorPool(r.device, r.bonePool, nil)
+		}
+		if r.boneLayout != nil {
+			C.vkDestroyDescriptorSetLayout(r.device, r.boneLayout, nil)
 		}
 		if r.uniformBuffer != nil || r.uniformMemory != nil {
 			C.gk_vk_destroy_buffer(r.device, r.uniformBuffer, r.uniformMemory)

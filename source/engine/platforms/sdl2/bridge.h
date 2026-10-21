@@ -28,3 +28,7 @@ int gk_vulkan_extensions(SDL_Window *window, unsigned int *count, const char **o
 int gk_create_surface(SDL_Window *window, uint64_t instance, void **surface);
 void gk_window_size(SDL_Window *window, int *width, int *height);
 int gk_set_relative_mouse(SDL_Window *window, int enabled);
+void gk_set_title(SDL_Window *window, const char *title);
+void gk_show_cursor(int show);
+void gk_capture_mouse(SDL_Window *window);
+void gk_release_mouse(SDL_Window *window);

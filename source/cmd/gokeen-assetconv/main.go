@@ -55,6 +55,12 @@ func run(game, packPath, levelDir, sourceDir, reportPath, backportPath string, f
 	}{
 		{legacy: "Keen3f/Keen3f.3ds", meshID: "player_keen", prefix: "keen"},
 		{legacy: "NPC/Yorp1h/YorpStand.3ds", meshID: "yorp", prefix: "yorp"},
+		{legacy: "Items/Pogo.3ds", meshID: "item_pogo", prefix: "item_pogo"},
+		{legacy: "Items/Gun4.3ds", meshID: "item_gun", prefix: "item_gun"},
+		{legacy: "Items/Key.3ds", meshID: "item_key", prefix: "item_key"},
+		{legacy: "Items/Pizza.3ds", meshID: "item_pizza", prefix: "item_pizza"},
+		{legacy: "Items/Soda/Soda.3ds", meshID: "item_soda", prefix: "item_soda"},
+		{legacy: "Items/Sign/ExitSign.3ds", meshID: "exit_sign", prefix: "exit_sign"},
 	}
 	for _, job := range jobs {
 		fmt.Printf("importing %s (%s)\n", job.id, job.source)
@@ -84,6 +90,15 @@ func run(game, packPath, levelDir, sourceDir, reportPath, backportPath string, f
 		if _, err := gltf.ExportMesh(sourceDir, conv.Pack(), meshID); err != nil {
 			return fmt.Errorf("export glTF for %s: %w", job.meshID, err)
 		}
+	}
+	fmt.Println("importing skinned model player_keen_skinned")
+	if _, err := conv.ImportSkinnedB3D("Keen3f/KeenWalk.b3d", "player_keen_skinned", "skel_keen", "keen", []importer.ClipSpec{
+		{Name: "walk", File: "Keen3f/KeenWalk.b3d", Loop: true},
+		{Name: "shoot", File: "Keen3f/KeenShoot.b3d", Loop: false},
+		{Name: "jump", File: "Keen3f/KeenJump.b3d", Loop: false},
+		{Name: "die", File: "Keen3f/KeenDie.b3d", Loop: false},
+	}, true); err != nil {
+		return err
 	}
 	if err := conv.Pack().Validate(); err != nil {
 		return err

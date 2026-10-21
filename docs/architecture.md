@@ -3,72 +3,93 @@
 ## Overview
 
 GoKeen is split into a reusable engine, a typed gameplay/entity layer, editable
-content data, and offline conversion tools. Runtime rendering and platform code
-are isolated so gameplay does not depend on SDL or Vulkan types.
+content data, and offline conversion tools. The current executable uses the SDL2
+and Vulkan packages directly; extracting backend-neutral interfaces is planned.
 
 ```text
 cmd/gokeen
     |
-    +-- engine/platforms/sdl2       window, input, audio
+    +-- engine/platforms/sdl2       window, events, surface
     +-- engine/renderers/vulkan     rendering backend
-    +-- engine/scenes               state machine
-    +-- gameplay                    game rules
-    +-- entities                    typed ECS
+    +-- gameplay                    player/enemy/pickup/trigger rules
+    +-- entities                    typed ECS (scaffolding, not runtime yet)
     +-- levels                      JSON levels
     +-- assets                      embedded runtime pack
 ```
+
+## Implementation Status
+
+The architecture below describes both the current implementation and intended
+structure. This table is the quick reference for what actually exists.
+
+| Subsystem | Current state |
+|---|---|
+| Mathematics | Implemented |
+| Fixed-step clock | Implemented, not yet driving the runtime loop |
+| Typed ECS | Implemented and tested; not yet used by the main gameplay loop |
+| Asset pack/store/embed | Implemented |
+| B3D/3DS/`.dat` parsing | Implemented; `.dat` semantics partial |
+| Static glTF export | Implemented |
+| Skinned glTF export | Not implemented |
+| Level JSON/validation | Implemented |
+| Entity registry | Implemented; runtime spawning is still an ad-hoc switch |
+| SDL2 window/events | Implemented |
+| SDL2 gamepad/audio | Not implemented |
+| Vulkan static mesh rendering | Implemented |
+| Vulkan skinned rendering | Implemented |
+| Vulkan sprite/UI rendering | Not implemented |
+| Blinn-Phong + lightmap | Implemented |
+| HDR/post/shadows | Not implemented |
+| BVH/raycast/capsule | Implemented; movement tuning partial |
+| Player controller | Implemented |
+| Pogo | Implemented |
+| Laser + ammo | Implemented (moving projectiles) |
+| Yorp actor/stun | Implemented, static model only |
+| Keen skinned animation | Implemented: walk/jump/shoot/die clips |
+| Cursor lifecycle | Implemented: release on exit/signals |
+| Pickups/score/key/health | Implemented for a subset of items |
+| Exit/level transition | Implemented for Level 1 -> Level 2 |
+| HUD | Window-title debug HUD only |
+| Audio | Not implemented |
+| Asset viewer/editor | Level fly viewer only; no dedicated editor |
 
 ## Directory Layout
 
 ```text
 source/
   cmd/
-    gokeen/
-    gokeen-assetconv/
-    gokeen-assetcheck/
-    gokeen-assetview/
-    gokeen-levelcheck/
+    gokeen/                  runnable game
+    gokeen-assetconv/        legacy -> glTF/JSON/pack
+    gokeen-assetcheck/       pack/glTF/level verification
+    gokeen-levelcheck/       level JSON verification
   engine/
-    animations/
-    audio/
-    core/
-    inputs/
-    mathematics/
-    physics/
-    platforms/sdl2/
-    renderers/
-      vulkan/
-    scenes/
-    uis/
+    animations/              skeleton/clip sampling
+    core/                    wall clock + fixed-step clock
+    mathematics/             vectors, matrices, quaternions, rays, AABB
+    physics/                 BVH, raycasts, capsule contact/movement
+    platforms/sdl2/          cgo window/event/surface/title bridge
+    renderers/vulkan/        cgo Vulkan renderer
   entities/
-    components/
-    prefabs/
-    queries/
-    stores/
+    components/              typed component structs
+    ids.go, store.go, world.go
   gameplay/
-    cameras/
-    enemies/
-    pickups/
-    players/
-    systems/
-    triggers/
-    weapons/
+    cameras/                 third-person camera
+    enemies/                 Yorp actor and stun state
+    pickups/                 item effects and player inventory updates
+    players/                 player controller and state
+    triggers/                trigger volume helper
   levels/
-    data/
+    data/                    embedded level JSON
+    format/loader/registry/validation/backport manifest
   assets/
-    pack/
-    sources/
-  shaders/
-  tools/
-    legacy/
-      b3d/
-      threeds/
-      leveldat/
-      textures/
-      gltf/
-      verify/
-  configs/
+    pack/                    generated embedded `.gkp`
+    sources/                 editable glTF, PNG, source manifest
+  shaders/                   GLSL + embedded SPIR-V
+  tools/legacy/
+    b3d/ threeds/ leveldat/ textures/ gltf/ verify/ importer/
 ```
+
+Planned packages that do not exist yet are intentionally omitted here.
 
 ## Runtime Types
 
@@ -104,10 +125,12 @@ Core types:
 - Each component type has a typed store.
 - Queries iterate the smallest alive store and check the others.
 - Entity destruction removes components without reusing stale IDs.
-- Systems run in a defined order from `gameplay/systems`.
 
-Gameplay-specific components live under `source/entities/components`, while
-systems that interpret them live under `source/gameplay`.
+The ECS is implemented and tested. It is not yet the runtime gameplay store;
+current systems use plain controller structs in `gameplay/`. Migrating the
+runtime to ECS-backed entities is planned.
+
+Gameplay-specific component definitions live under `source/entities/components`.
 
 ### Assets
 
@@ -131,10 +154,10 @@ The embedded pack is generated offline. Its header contains:
 - Format version.
 - Content hash.
 - Section table.
-- String table.
 
-Sections contain meshes, materials, textures, skeletons, clips, collision data,
-and audio clips. The reader validates all offsets and limits before allocating.
+Sections contain meshes, materials, textures, skeletons, clips, and audio clips.
+Strings are stored inline in their sections. The reader validates offsets,
+limits, hashes, and cross-references before exposing typed lookups.
 
 ### Levels
 
@@ -156,28 +179,26 @@ The loader:
 4. Validates IDs, transforms, bounds, and entity properties.
 5. Produces a runtime `Level` value.
 
-Entity types are registered in a registry. Each definition provides:
-
-- Type name.
-- Display metadata for tools/editor.
-- Property decoder.
-- Spawn function.
-- Default property value.
-
-The registry is the single source of truth for JSON validation, runtime spawning,
-and future editor property forms.
+A typed entity registry exists with definitions for type name, display metadata,
+property decoding, and spawn metadata. The current runtime still spawns
+`yorp`, `pickup`, and `exit` through a switch in `cmd/gokeen`, so registry-driven
+spawning and full property validation remain planned.
 
 ## Platform Layer
 
-`engine/platforms/sdl2` contains a minimal cgo bridge:
+`engine/platforms/sdl2` currently contains a minimal cgo bridge:
 
 - `SDL_Init` / `SDL_Quit`.
 - Window creation with `SDL_WINDOW_VULKAN`.
 - Vulkan instance extension enumeration.
 - Vulkan surface creation.
-- Event polling.
+- Event polling (quit, key, mouse move/button/wheel, resize).
 - Relative mouse mode.
-- Game controller discovery.
+- Window title updates.
+
+Planned but not implemented:
+
+- Game controller discovery/events.
 - Audio device creation and queued PCM output.
 
 No Vulkan rendering is performed by SDL. SDL only supplies the platform surface.
@@ -187,33 +208,39 @@ leak into the rest of the engine.
 
 ## Renderer
 
-`engine/renderers` defines backend-neutral interfaces:
+There is currently no backend-neutral renderer interface package. `cmd/gokeen`
+uses `engine/renderers/vulkan` directly. Introducing a renderer interface is
+planned before adding another backend.
 
-- Renderer lifetime.
-- Frame begin/end.
-- Resize.
-- Camera.
-- Draw submission.
-- Mesh/material/texture handles.
+`engine/renderers/vulkan` currently implements:
 
-`engine/renderers/vulkan` implements the backend:
-
-- Instance and validation layers.
-- Physical/logical device selection.
+- Instance and physical/logical device selection.
 - Swapchain and depth target.
-- Frame synchronization.
-- Staging uploads.
-- Buffers, images, samplers.
-- Descriptor sets.
-- Pipelines.
-- Command buffers.
-- Resize/recreation.
-- Deferred destruction.
+- Frame synchronization (one frame in flight).
+- Buffers and textures (host-visible uploads).
+- Per-material descriptor sets and per-instance bone buffers.
+- Static and skinned mesh pipelines.
+- Command buffers and resize/recreation.
+- Basic resource destruction.
+
+Planned but not implemented:
+
+- Validation layers/debug messenger.
+- Staging-buffer uploads and device-local vertex/index buffers.
+- Alpha, sprite, skybox, and UI pipelines.
+- Multi-frame-in-flight synchronization.
+- HDR target, tone mapping, FXAA, bloom, SSAO.
+- Shadow maps and frustum culling.
 
 ### Pipelines
 
-- Opaque static mesh.
-- Skinned opaque mesh.
+Current:
+
+- Opaque static mesh with depth testing.
+- Skinned opaque mesh with a 64-bone palette.
+
+Planned:
+
 - Alpha-test mesh.
 - Alpha-blend mesh.
 - Additive sprite/effect.
@@ -222,17 +249,16 @@ leak into the rest of the engine.
 
 ### Shading
 
-The baseline is per-pixel Blinn-Phong:
+The current shader is per-pixel Blinn-Phong:
 
 ```text
-ambient + lightmap
-+ sum(diffuse(N,L) * lightColor)
-+ sum(BlinnPhong(N,H,shininess) * specular)
-+ emissive
+ambient * lightmap
++ diffuse(N,L) * lightColor * lightmap
++ BlinnPhong(N,H,shininess) * lightColor * lightmap
 ```
 
-Textures are sampled in sRGB and converted to linear space. The scene renders to
-an HDR target. A composite pass applies exposure, tone mapping, gamma, and FXAA.
+The renderer draws directly into the sRGB swapchain. There is no HDR target,
+tone mapping, or gamma composite pass yet. Textures are sampled as sRGB.
 
 ### Material Layers
 
@@ -247,8 +273,9 @@ The importer converts legacy brush layers into a runtime material:
 - Emissive.
 - Lightmap reference.
 
-The renderer initially supports base + lightmap and falls back to a documented
-checker material for unsupported layer combinations.
+The runtime currently supports a base texture plus a lightmap/multiply layer.
+Additional layers are preserved in the asset data but are not yet rendered.
+Missing textures use a generated checker fallback.
 
 ## Animation
 
@@ -257,75 +284,83 @@ The animation package provides:
 - `Skeleton`: ordered bones with parent indices and inverse bind matrices.
 - `Clip`: per-bone position, scale, and rotation tracks.
 - `Sampler`: linear position/scale and slerp rotation.
-- `Controller`: loop, one-shot, transition, and speed control.
 - `Pose`: current local and world bone transforms.
 
-The Vulkan skinned pipeline receives a bone matrix palette. Models without skin
-data use the static pipeline.
+Sampling is implemented and tested. There is no animation controller/blending
+system yet. The legacy B3D parser reads bones and keys, but the importer does not
+yet emit runtime skeletons/clips and there is no Vulkan skinned pipeline. All
+characters currently render as static meshes.
 
 ## Physics
 
-Static collision geometry is converted to a triangle soup and a BVH offline.
-Runtime physics provides:
+Collision geometry is converted to a triangle soup and a BVH at runtime from
+the imported collision mesh. Physics currently provides:
 
 - `Raycast`.
-- `SphereCast`.
-- `CapsuleSweep`.
-- `Overlap`.
-- Ground query.
-- Contact resolution.
+- `OverlapSphere`.
+- Capsule contact generation.
+- Conservative substepped capsule movement with depenetration.
+- Downward ground query in the player/enemy controllers.
 
-The player controller is a swept capsule with:
+Current player controller:
 
 - Gravity.
 - Ground detection.
-- Step-up.
-- Slope limit.
-- Ground snap.
 - Air control.
 - Jump and pogo bounce.
+- Fall respawn.
 
-Simulation runs at a fixed 120 Hz. Rendering interpolates transforms between
-simulation states.
+Not yet tuned/implemented:
+
+- Step-up.
+- Slope limit.
+- Ground snap/interpolation.
+- Moving platforms.
+- Camera spring-arm collision.
+
+The fixed-step clock exists and is tested, but the main loop currently uses a
+variable per-frame delta. Migrating gameplay to the fixed tick is pending.
 
 ## Gameplay
 
-Gameplay systems execute in a deterministic order each fixed tick:
+The current runtime lives in `cmd/gokeen`. Each level is loaded and played in a
+session loop:
 
-1. Input snapshot.
-2. Player controller.
-3. Enemy AI.
-4. Velocity integration.
-5. Physics resolution.
-6. Trigger and pickup detection.
-7. Damage and death.
-8. Animation.
-9. Camera.
-10. Audio/UI events.
-11. Render extraction.
+1. Load embedded level JSON and validate assets.
+2. Upload static geometry and materials to Vulkan.
+3. Build a runtime collision BVH from the collision mesh.
+4. Spawn the player, Yorps, pickups, exits, and laser effect instance.
+5. Poll input and update the player/enemies/pickups.
+6. Resolve exit triggers and transition to the next level.
 
-Game states are managed by `engine/scenes`:
+The typed ECS and fixed-step clock exist as tested scaffolding but are not yet
+wired into this loop. There is no scene manager yet. The current gameplay uses
+plain controller structs in `gameplay/players`, `gameplay/enemies`, and
+`gameplay/pickups`.
 
-- Boot.
-- Title.
-- Options.
-- Controls.
-- Map.
-- Playing.
-- Paused.
-- Dying.
-- Level complete.
-- Game over.
+Implemented game flow:
 
+- Level 1 spawn, pogo/gun pickups, hand-held gun, moving projectile laser,
+  Yorp stun, exit trigger.
+- Skinned Keen walk/jump/shoot animation.
+- Level 1 -> Level 2 transition.
+- Persistent health, ammo, score, lives, key, and pogo state across levels.
+- Debug window-title HUD.
+
+Pending game flow:
+
+- Title/options/controls/pause/game-over states.
+- HUD/stats art.
+- Yorp animation, death, and impact effects.
+- Animation blending and death clip wiring.
+- Level 2/5/map entity placement and exits.
+- Garg/PatPat.
+- Audio events.
 ## Audio
 
-SDL supplies the audio device. Go generates/queues PCM through a mixer:
-
-- Master volume.
-- Listener position and orientation.
-- Simple distance attenuation and panning.
-- Procedural sound effects generated at startup.
-- Future WAV clips loaded from the asset pack.
+Not implemented yet. SDL audio is initialised, but no audio device, mixer, or
+PCM queue exists. The intended design remains: Go-generated procedural SFX and
+pack-loaded WAV clips mixed by Go and queued through SDL.
 
 ## Offline Tools
 
@@ -348,12 +383,15 @@ Verifies structural integrity:
 
 ### gokeen-levelcheck
 
-Validates level JSON against the asset manifest and entity registry.
+Validates level JSON against the asset manifest. Entity-type validation is
+currently limited because the runtime does not yet use the registry for all
+spawns.
 
 ### gokeen-assetview
 
-Development viewer for levels, meshes, materials, skeletons, and animations.
-It is intended to become the foundation of the future level editor viewport.
+Not implemented as a separate tool. `gokeen -level <id> -fly` currently serves as
+a basic fly-camera level viewer. A dedicated model/animation viewer and future
+editor viewport remain planned.
 
 ## Testing
 
@@ -362,8 +400,9 @@ It is intended to become the foundation of the future level editor viewport.
 - Legacy parser tests use both synthetic chunks and selected real assets.
 - Import verification uses structural invariants rather than pixel-perfect
   comparisons.
-- Vulkan smoke tests must skip cleanly if no usable device exists.
-- Every milestone ends with `gofmt`, `go vet`, and `go test ./...`.
+- Renderer verification is currently manual (SDL window + screenshot); there
+  is no automated Vulkan pixel/smoke test yet.
+- Every implementation pass ends with `gofmt`, `go vet`, and `go test ./...`.
 
 ## Error Handling
 

@@ -37,7 +37,7 @@ func (r *Renderer) Frame() error {
 		C.float(0.04), C.float(0.05), C.float(0.08), C.float(1)); res != 0 {
 		return fmt.Errorf("begin frame: %d", int(res))
 	}
-	if r.pipeline != nil && (len(r.draws) > 0 || len(r.instances) > 0) {
+	if r.pipeline != nil && (len(r.draws) > 0 || len(r.instances) > 0 || len(r.skinnedInstances) > 0) {
 		C.vkCmdBindPipeline(cmd, C.VK_PIPELINE_BIND_POINT_GRAPHICS, r.pipeline)
 		for _, draw := range r.draws {
 			r.draw(cmd, draw)
@@ -48,6 +48,31 @@ func (r *Renderer) Frame() error {
 			}
 			for _, draw := range inst.draws {
 				r.draw(cmd, draw)
+			}
+		}
+	}
+	if r.skinnedPipeline != nil {
+		C.vkCmdBindPipeline(cmd, C.VK_PIPELINE_BIND_POINT_GRAPHICS, r.skinnedPipeline)
+		for _, inst := range r.skinnedInstances {
+			if inst == nil {
+				continue
+			}
+			for _, sub := range inst.submeshes {
+				sets := []C.VkDescriptorSet{sub.material.descriptorSet, inst.boneSet}
+				C.vkCmdBindDescriptorSets(cmd, C.VK_PIPELINE_BIND_POINT_GRAPHICS, r.skinnedPipelineLayout,
+					0, 2, &sets[0], 0, nil)
+				offset := C.VkDeviceSize(0)
+				C.vkCmdBindVertexBuffers(cmd, 0, 1, &inst.mesh.vertexBuffer, &offset)
+				C.vkCmdBindIndexBuffer(cmd, inst.mesh.indexBuffer, 0, C.VK_INDEX_TYPE_UINT32)
+				push := pushConstants{
+					Model:      inst.model,
+					BaseColor:  sub.material.baseColor,
+					Parameters: sub.material.parameters,
+				}
+				C.vkCmdPushConstants(cmd, r.skinnedPipelineLayout,
+					C.VkShaderStageFlags(C.VK_SHADER_STAGE_VERTEX_BIT)|C.VkShaderStageFlags(C.VK_SHADER_STAGE_FRAGMENT_BIT),
+					0, C.uint32_t(unsafe.Sizeof(push)), unsafe.Pointer(&push))
+				C.vkCmdDrawIndexed(cmd, C.uint32_t(sub.indexCount), 1, C.uint32_t(sub.indexStart), 0, 0)
 			}
 		}
 	}

@@ -168,3 +168,53 @@ func TestImportYorpModel(t *testing.T) {
 		t.Fatalf("unexpected yorp bounds: %+v", mesh.Bounds)
 	}
 }
+
+func TestImportSkinnedKeen(t *testing.T) {
+	if _, err := os.Stat(legacyRoot()); err != nil {
+		t.Skip("legacy assets not available")
+	}
+	c, err := New(legacyRoot())
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := c.ImportSkinnedB3D("Keen3f/KeenWalk.b3d", "player_keen_skinned", "skel_keen", "keen", []ClipSpec{
+		{Name: "walk", File: "Keen3f/KeenWalk.b3d", Loop: true},
+		{Name: "shoot", File: "Keen3f/KeenShoot.b3d", Loop: false},
+		{Name: "jump", File: "Keen3f/KeenJump.b3d", Loop: false},
+	}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mesh := c.Pack().Meshes[id]
+	if mesh.Skeleton != "skel_keen" {
+		t.Fatalf("skeleton: %q", mesh.Skeleton)
+	}
+	skel := c.Pack().Skeletons["skel_keen"]
+	if len(skel.Bones) < 20 {
+		t.Fatalf("bones: %d", len(skel.Bones))
+	}
+	if len(c.Pack().Clips) != 3 {
+		t.Fatalf("clips: %d", len(c.Pack().Clips))
+	}
+	weighted := 0
+	for _, v := range mesh.Vertices {
+		if v.BoneWeights[0] > 0 {
+			weighted++
+		}
+	}
+	if weighted == 0 {
+		t.Fatal("no weighted vertices")
+	}
+	for i, v := range mesh.Vertices {
+		var sum float32
+		for _, w := range v.BoneWeights {
+			sum += w
+		}
+		if sum < 0.99 {
+			t.Fatalf("vertex %d has unnormalized/empty weights: %v", i, sum)
+		}
+	}
+	if err := c.Pack().Validate(); err != nil {
+		t.Fatal(err)
+	}
+}

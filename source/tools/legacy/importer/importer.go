@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"gokeen/assets"
+	"gokeen/engine/animations"
 	maths "gokeen/engine/mathematics"
 	"gokeen/levels"
 	"gokeen/tools/legacy/b3d"
@@ -623,4 +624,266 @@ func m4From3DS(v [12]float32) maths.Mat4 {
 		v[2], v[5], v[8], 0,
 		v[9], v[10], v[11], 1,
 	}
+}
+
+type ClipSpec struct {
+	Name string
+	File string
+	Loop bool
+}
+
+type skinnedBone struct {
+	node   *b3d.Node
+	parent int
+	index  int
+}
+
+func (c *Converter) ImportSkinnedB3D(baseRel, meshID, skeletonID, prefix string, clips []ClipSpec, flipZ bool) (assets.MeshID, error) {
+	basePath := filepath.Join(c.root, filepath.FromSlash(baseRel))
+	f, err := b3d.ParseFile(basePath)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", baseRel, err)
+	}
+	matIDs, err := c.importBrushes(f, baseRel, prefix)
+	if err != nil {
+		return "", err
+	}
+	reverseWinding := flipZ
+
+	// Include the mesh root and every descendant as skeleton bones so the
+	// hierarchy and hand/head attachment points remain intact.
+	var ordered []skinnedBone
+	var addBones func(node *b3d.Node, parent int)
+	addBones = func(node *b3d.Node, parent int) {
+		idx := len(ordered)
+		ordered = append(ordered, skinnedBone{node: node, parent: parent, index: idx})
+		for _, child := range node.Children {
+			addBones(child, idx)
+		}
+	}
+	addBones(f.Root, -1)
+	skeleton := animations.Skeleton{ID: animations.SkeletonID(skeletonID), Name: skeletonID}
+	skeleton.Bones = make([]animations.Bone, len(ordered))
+	nameToBone := make(map[string]int)
+	for i, item := range ordered {
+		local := maths.IdentityTransform()
+		if i != 0 {
+			local = convertB3DTransform(item.node.Position, item.node.Scale, item.node.Rotation, flipZ)
+		}
+		skeleton.Bones[i] = animations.Bone{Name: item.node.Name, Parent: int32(item.parent), Local: local}
+		nameToBone[item.node.Name] = i
+	}
+	// Compute bind-pose world matrices and inverse bind matrices.
+	world := make([]maths.Mat4, len(ordered))
+	for i, item := range ordered {
+		local := skeleton.Bones[i].Local.Matrix()
+		if item.parent >= 0 {
+			world[i] = world[item.parent].Mul(local)
+		} else {
+			world[i] = local
+		}
+		inv, ok := world[i].Inverse()
+		if !ok {
+			inv = maths.M4Identity()
+		}
+		skeleton.Bones[i].InverseBind = inv
+	}
+	c.pack.Skeletons[skeleton.ID] = skeleton
+
+	// Map the BONE chunks (vertex weights) to skeleton indices. B3D numbers
+	// these bones in traversal order.
+	boneOrder := make([]int, 0, len(ordered))
+	for _, item := range ordered {
+		if len(item.node.Bone) > 0 {
+			boneOrder = append(boneOrder, item.index)
+		}
+	}
+
+	mesh := assets.Mesh{ID: assets.MeshID(meshID), Name: filepath.Base(baseRel), Skeleton: skeleton.ID}
+	if f.Root.Mesh == nil {
+		return "", fmt.Errorf("%s: root has no mesh", baseRel)
+	}
+	weights := make([][]boneWeight, len(f.Root.Mesh.Vertices))
+	for bi, boneIndex := range boneOrder {
+		for _, bw := range ordered[boneIndex].node.Bone {
+			if bw.Vertex < 0 || int(bw.Vertex) >= len(weights) {
+				continue
+			}
+			weights[bw.Vertex] = append(weights[bw.Vertex], boneWeight{bone: bi, weight: bw.Weight})
+		}
+	}
+	for i, v := range f.Root.Mesh.Vertices {
+		color := [4]uint8{255, 255, 255, 255}
+		if v.Color != [4]float32{} {
+			for j := 0; j < 4; j++ {
+				color[j] = toByte(v.Color[j])
+			}
+		}
+		vertex := assets.Vertex{
+			Position: convertB3DPoint(v.Position, flipZ),
+			Normal:   convertB3DVector(v.Normal, flipZ),
+			UV0:      maths.V2(v.UV[0][0], v.UV[0][1]),
+			UV1:      maths.V2(v.UV[1][0], v.UV[1][1]),
+			Color:    color,
+		}
+		bws := topWeights(weights[i], 4)
+		if len(bws) == 0 {
+			vertex.BoneIndices[0] = 0
+			vertex.BoneWeights[0] = 1
+		} else {
+			var total float32
+			for j, bw := range bws {
+				vertex.BoneIndices[j] = uint8(boneOrder[bw.bone])
+				vertex.BoneWeights[j] = bw.weight
+				total += bw.weight
+			}
+			if total > 1e-6 {
+				for j := range vertex.BoneWeights {
+					vertex.BoneWeights[j] /= total
+				}
+			}
+		}
+		mesh.Vertices = append(mesh.Vertices, vertex)
+	}
+	for _, group := range f.Root.Mesh.Groups {
+		matID := matIDs[group.BrushID]
+		start := uint32(len(mesh.Indices))
+		for i := 0; i+2 < len(group.Indices); i += 3 {
+			a := uint32(group.Indices[i])
+			b := uint32(group.Indices[i+1])
+			cc := uint32(group.Indices[i+2])
+			if reverseWinding {
+				mesh.Indices = append(mesh.Indices, a, cc, b)
+			} else {
+				mesh.Indices = append(mesh.Indices, a, b, cc)
+			}
+		}
+		mesh.Submeshes = append(mesh.Submeshes, assets.Submesh{
+			Material: matID, IndexStart: start, IndexCount: uint32(len(mesh.Indices)) - start,
+		})
+	}
+	mesh.Bounds = meshBounds(mesh.Vertices)
+	c.pack.Meshes[mesh.ID] = mesh
+
+	for _, spec := range clips {
+		clipPath := filepath.Join(c.root, filepath.FromSlash(spec.File))
+		cf, err := b3d.ParseFile(clipPath)
+		if err != nil {
+			return "", fmt.Errorf("%s: %w", spec.File, err)
+		}
+		fps := float32(30)
+		frames := int32(0)
+		if cf.Root.Anim != nil {
+			frames = cf.Root.Anim.Frames
+			if cf.Root.Anim.FPS > 0 {
+				fps = cf.Root.Anim.FPS
+			}
+		}
+		clip := animations.Clip{
+			ID:       animations.ClipID("clip_" + slug(prefix) + "_" + slug(spec.Name)),
+			Name:     spec.Name,
+			Duration: float32(frames) / fps,
+			Loop:     spec.Loop,
+		}
+		var addClipTracks func(node *b3d.Node)
+		addClipTracks = func(node *b3d.Node) {
+			if node == nil {
+				return
+			}
+			if node.Keys != nil {
+				if boneIndex, ok := nameToBone[node.Name]; ok {
+					track := animations.BoneTrack{Bone: int32(boneIndex)}
+					for _, key := range node.Keys.Position {
+						track.Position = append(track.Position, animations.VectorKey{
+							Time: float32(key.Frame) / fps, Value: convertB3DPoint(key.Value, flipZ),
+						})
+					}
+					for _, key := range node.Keys.Scale {
+						track.Scale = append(track.Scale, animations.VectorKey{
+							Time: float32(key.Frame) / fps, Value: maths.V3(key.Value[0], key.Value[1], key.Value[2]),
+						})
+					}
+					for _, key := range node.Keys.Rotation {
+						q := convertB3DQuat(key.Value, flipZ)
+						track.Rotation = append(track.Rotation, animations.QuatKey{
+							Time: float32(key.Frame) / fps, Value: q,
+						})
+					}
+					if len(track.Position) > 0 || len(track.Scale) > 0 || len(track.Rotation) > 0 {
+						clip.Tracks = append(clip.Tracks, track)
+					}
+				}
+			}
+			for _, child := range node.Children {
+				addClipTracks(child)
+			}
+		}
+		addClipTracks(cf.Root)
+		c.pack.Clips[clip.ID] = clip
+	}
+	if err := c.pack.Validate(); err != nil {
+		return "", fmt.Errorf("invalid skinned pack after %s: %w", baseRel, err)
+	}
+	c.report.Assets = append(c.report.Assets, AssetReport{
+		ID: meshID, Source: baseRel, Meshes: 1,
+		Vertices: len(mesh.Vertices), Triangles: len(mesh.Indices) / 3,
+		Materials: len(matIDs), Textures: len(c.pack.Textures),
+	})
+	return mesh.ID, nil
+}
+
+type boneWeight struct {
+	bone   int
+	weight float32
+}
+
+func topWeights(in []boneWeight, max int) []boneWeight {
+	out := append([]boneWeight(nil), in...)
+	for i := 0; i < len(out); i++ {
+		for j := i + 1; j < len(out); j++ {
+			if out[j].weight > out[i].weight {
+				out[i], out[j] = out[j], out[i]
+			}
+		}
+	}
+	if len(out) > max {
+		out = out[:max]
+	}
+	return out
+}
+
+func convertB3DPoint(v [3]float32, flipZ bool) maths.Vec3 {
+	p := maths.V3(v[0], v[1], v[2])
+	if flipZ {
+		p.Z = -p.Z
+	}
+	return p
+}
+
+func convertB3DVector(v [3]float32, flipZ bool) maths.Vec3 {
+	return convertB3DPoint(v, flipZ).Normalize()
+}
+
+func convertB3DTransform(pos, scale [3]float32, rot [4]float32, flipZ bool) maths.Transform {
+	t := maths.Transform{
+		Position: convertB3DPoint(pos, flipZ),
+		Rotation: maths.QIdentity(),
+		Scale:    maths.V3(scale[0], scale[1], scale[2]),
+	}
+	t.Rotation = convertB3DQuat(rot, flipZ)
+	return t
+}
+
+func convertB3DQuat(rot [4]float32, flipZ bool) maths.Quat {
+	// Blitz3D quaternions use the opposite rotation convention from the
+	// engine's Hamilton quaternions. Convert to the standard convention, then
+	// apply the Z mirror as q' = (w,-x,-y,z).
+	q := maths.Quat{W: rot[0], X: -rot[1], Y: -rot[2], Z: -rot[3]}
+	if flipZ {
+		q = maths.Quat{W: q.W, X: -q.X, Y: -q.Y, Z: q.Z}
+	}
+	if q.LengthSquared() < 1e-8 {
+		return maths.QIdentity()
+	}
+	return q.Normalize()
 }

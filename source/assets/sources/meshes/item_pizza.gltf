@@ -1,0 +1,263 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "gokeen-assetconv"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Pizza.3ds",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "Pizza.3ds",
+      "mesh": 0
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Pizza.3ds",
+      "primitives": [
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 5,
+          "material": 0,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 6,
+          "material": 1,
+          "mode": 4
+        },
+        {
+          "attributes": {
+            "COLOR_0": 4,
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3
+          },
+          "indices": 7,
+          "material": 2,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "Cheese",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          0,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_item_pizza_cheese_0",
+          "layers": [],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    {
+      "name": "Crust",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.7058824,
+          0.2901961,
+          0,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_item_pizza_crust_1",
+          "layers": [],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    {
+      "name": "Pepperoini",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          0,
+          0,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.875
+      },
+      "extras": {
+        "gokeen": {
+          "alphaMode": 0,
+          "id": "mat_item_pizza_pepperoini_2",
+          "layers": [],
+          "lightmapUv": 1,
+          "shininess": 16,
+          "specular": [
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 60,
+      "type": "VEC3",
+      "min": [
+        -0.49769598,
+        -0.37737262,
+        -0.059330273
+      ],
+      "max": [
+        0.37895668,
+        0.49732104,
+        0.06690278
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 60,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 60,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 60,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5121,
+      "normalized": true,
+      "count": 60,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5125,
+      "count": 168,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 6,
+      "componentType": 5125,
+      "count": 126,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 7,
+      "componentType": 5125,
+      "count": 54,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 720,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 720,
+      "byteLength": 720,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1440,
+      "byteLength": 480,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1920,
+      "byteLength": 480,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 2400,
+      "byteLength": 240,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 2640,
+      "byteLength": 672,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 3312,
+      "byteLength": 504,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 3816,
+      "byteLength": 216,
+      "target": 34963
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "item_pizza.bin",
+      "byteLength": 4032
+    }
+  ]
+}

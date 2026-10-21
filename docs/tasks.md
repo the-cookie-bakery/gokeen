@@ -1,138 +1,122 @@
 # GoKeen Task Tracker
 
-This file is the working backlog and verification record. A task is only marked
-verified when its tests pass and the result has been checked with the tools in
-the `Tests` column.
+This file tracks only outstanding or incomplete work. Completed work is
+summarized in `current-state.md` and is intentionally not kept as finished task
+rows here.
 
 Status values in the `Verified` column:
 
-- `no` - not implemented, not tested, or tests failing.
-- `partial` - implemented and some tests pass, but acceptance criteria are incomplete.
-- `yes` - implemented, tests pass, and the milestone acceptance check succeeds.
-- `n/a` - not applicable (documentation or investigation task).
+- `partial` - implemented, tests pass for the covered part, but acceptance
+  criteria are incomplete.
+- `no` - not implemented, not tested, or known incomplete.
 
-## M0 - Legacy Archaeology and Conversion Specification
-
-| ID | Task | Tests | Verified | Notes |
-|---|---|---|---|---|
-| M0-01 | Inventory all legacy assets and referenced paths | `go test ./tools/legacy/textures` + conversion inventory report | partial | Missing references must be reported. |
-| M0-02 | Decode `.dat` record layout, axis order, and entity semantics | Unit tests against real `level1.dat`/`level2.dat` plus bounds validation | partial | Header appears to be a count/index; axis mapping must be proven. |
-| M0-03 | Recover item, exit, and map-entrance placement data | Level JSON validation + manual asset viewer check | no | `.dat` appears to contain enemy spawns only. |
-| M0-04 | Define coordinate conversion and triangle winding rules | Math/import bounds and winding tests | partial | Convert Blitz3D/Direct3D style to right-handed Y-up. |
-| M0-05 | Define B3D -> glTF material/animation mapping | Asset conversion tests and glTF verification report | partial | Layers, lightmaps, skins, clips. |
-| M0-06 | Seed `source/levels/backport.json` | `go test ./levels` | yes | Include missing Levels 3, 4, and 16. |
-| M0-07 | Define import verification criteria | `gokeen-assetcheck` report | yes | Counts, bounds, UVs, tracks, textures. |
-
-## M1 - Platform and Renderer Bring-up
+## Legacy Data and Backport
 
 | ID | Task | Tests | Verified | Notes |
 |---|---|---|---|---|
-| M1-01 | Go module and package scaffold | `go test ./...` | yes | Module is `gokeen`. |
-| M1-02 | Core math types and coordinate convention | `go test ./engine/mathematics` | yes | Vec/Mat/Quat/AABB/Ray/Transform. |
-| M1-03 | Core app lifecycle and clock | Unit tests for fixed-step accumulator | yes | 120 Hz simulation. |
-| M1-04 | SDL2 cgo bridge: init, window, events | Manual window smoke test + build | yes | Linux first. |
-| M1-05 | SDL2 input bridge | Build + event smoke test | partial | Keyboard, mouse, gamepad. |
-| M1-06 | SDL2 audio device and queued PCM | Build + audible smoke test | no | Mixer later. |
-| M1-07 | Vulkan instance/device/swapchain | Build + runtime smoke test with validation layers | yes | Hand-written cgo. |
-| M1-08 | Vulkan clear screen and resize | Runtime visual check | partial | First rendered frame. |
-| M1-09 | Game executable with platform loop | `go build ./cmd/gokeen` | yes | Window opens and closes cleanly. |
+| M0-02 | Decode `.dat` record layout, axis order, and entity semantics | Unit tests against real `level1.dat`/`level2.dat` plus bounds validation | partial | Header/record size known; exact axis/semantics still not proven. |
+| M0-03 | Recover item, exit, and map-entrance placement data | Level JSON validation + manual in-game check | partial | Level 1 exit is B3D-derived; pickups are authored placeholders. |
+| M2-07 | Export skinned B3D meshes/clips to glTF | Verification report | partial | Static glTF export works; skins/animations are pack-only. |
+| M2-09 | Import `.dat` data into level JSON | Golden tests against known records | partial | Parser exists; no production entity conversion yet. |
+| M2-15 | Asset/model/animation viewer | Manual visual verification | partial | `gokeen -level <id> -fly` exists; no dedicated model viewer. |
 
-## M2 - Asset Pipeline and Static Level Viewer
+## Platform and Input
 
 | ID | Task | Tests | Verified | Notes |
 |---|---|---|---|---|
-| M2-01 | Typed asset IDs and runtime types | `go test ./assets` | yes | No untyped handles in gameplay. |
-| M2-02 | Deterministic `.gkp` pack writer/reader | Round-trip and malformed-input tests | yes | Section offsets and hash validation. |
-| M2-03 | Typed asset store and manifest | `go test ./assets` | yes | Source manifest + typed store. |
-| M2-04 | B3D parser | Synthetic + real Level1/model tests | yes | Chunks, nodes, meshes, materials, bones, keys. |
-| M2-05 | 3DS parser | Synthetic + real item tests | yes | Big-endian chunks, materials, UVs, transforms. |
-| M2-06 | Texture resolver and BMP/PNG conversion | Unit tests for Windows paths, case, missing files | yes | Report ambiguities and fallbacks. |
-| M2-07 | B3D -> glTF writer | Verification report | partial | Static and skinned meshes, clips, materials. |
-| M2-08 | 3DS -> glTF writer | Verification report | yes | Static 3DS models converted to glTF/pack; animation support still pending. |
-| M2-09 | `.dat` importer | Golden tests against known records | partial | Depends on M0-02. |
-| M2-10 | Level JSON schema and strict loader | `go test ./levels` | yes | Unknown fields rejected. |
-| M2-11 | Entity registry and property decoding | `go test ./entities/... ./levels` | partial | Shared with editor schema. |
-| M2-12 | Level validation | `go test ./levels` | yes | IDs, assets, transforms, bounds. |
-| M2-13 | `gokeen-assetconv` CLI | `go run ./cmd/gokeen-assetconv --help` + conversion test | yes | Inventory/convert/verify modes. |
-| M2-14 | `gokeen-assetcheck` CLI | `go run ./cmd/gokeen-assetcheck` | yes | Verifies imports and pack. |
-| M2-15 | Asset viewer loads a level/model | Manual visual verification | partial | `gokeen -level <id>` fly viewer works; dedicated model/animation viewer pending. |
-| M2-16 | Static Level 1 renders with textures and lightmaps | Visual check + renderer smoke test | yes | Vulkan mesh pipeline, depth buffer, layered material descriptors. |
+| M1-05 | Gamepad input support | Build + controller smoke test | partial | Keyboard/mouse work; gamepad events/actions pending. |
+| M1-06 | SDL2 audio device and queued PCM | Build + audible smoke test | no | Audio is initialised but no device/mixer exists. |
+| M1-08 | Swapchain resize hardening | Automated resize test | partial | Resize path exists; no automated recreation test. |
 
-## M3 - Modern Lighting and Materials
+## Entity and Level Structure
 
 | ID | Task | Tests | Verified | Notes |
 |---|---|---|---|---|
-| M3-01 | Blinn-Phong material shader | Shader compile + visual test | yes | Ambient/diffuse/specular implemented; emissive pending. |
-| M3-02 | Lightmap multiply layer | Visual test on Level 1 | partial | UV1 lightmap path implemented; broader visual validation pending. |
-| M3-03 | Dynamic directional/point/spot lights | Unit test light parsing + visual test | partial | Directional sun from level JSON is active; point/spot lights pending. |
-| M3-04 | HDR offscreen target | Renderer smoke test | no | sRGB/linear correctness. |
-| M3-05 | Tone mapping and gamma composite | Shader compile + visual test | no | ACES-style curve. |
-| M3-06 | Alpha-test, alpha-blend, additive pipelines | Visual test | no | Signs, glass, lasers. |
-| M3-07 | FXAA | Visual test | no | MSAA optional. |
-| M3-08 | Skybox and fog | Visual test | no | Map and level backgrounds. |
-| M3-09 | Blob shadows | Visual test | no | Character grounding. |
-| M3-10 | Directional shadow maps | Visual test + performance check | no | Polish stage. |
-| M3-11 | Optional SSAO/bloom | Visual test | no | Post vertical slice. |
-| M3-12 | Normal mapping support | Visual test | no | Where material metadata exists. |
+| M2-11 | Registry-driven runtime spawning | `go test ./entities/... ./levels` | partial | Registry exists; runtime uses an ad-hoc switch for Yorp/pickup/exit. |
+| M6-01 | Level 2 entity placement and exit | Level validation + playthrough | partial | Geometry imported; no entities/exit yet. |
+| M6-02 | Level 5 entity/pogo placement | Level validation + playthrough | partial | Geometry imported; no entities/exit yet. |
+| M6-03 | Map hub entities and level entrances | Level validation + playthrough | partial | Geometry imported; hub gameplay pending. |
+| M6-09 | Advance backport manifest statuses | `gokeen-levelcheck` | partial | Levels remain `imported`; `validated`/`playable` needs acceptance. |
 
-## M4 - Player, Physics, Camera
+## Rendering and Lighting
 
 | ID | Task | Tests | Verified | Notes |
 |---|---|---|---|---|
-| M4-01 | Triangle BVH construction and query | `go test ./engine/physics` | yes | Raycast, sphere cast, overlap. |
-| M4-02 | Capsule sweep and slide | `go test ./engine/physics` | partial | Swept capsule movement and landing work; full step-up/slope tuning pending. |
-| M4-03 | Ground detection and snapping | `go test ./engine/physics` | yes | Downward ground query implemented and tested. |
-| M4-04 | Fixed timestep simulation | `go test ./engine/core` | yes | Deterministic accumulator. |
-| M4-05 | Player movement and jump | Gameplay simulation tests | yes | Camera-relative movement and jump covered by tests. |
-| M4-06 | Third-person spring-arm camera | Camera collision tests + visual | partial | Third-person camera works; spring-arm collision pending. |
-| M4-07 | Skeleton/clip animation sampler | `go test ./engine/animations` | yes | Loop, one-shot, transition. |
-| M4-08 | Skinned mesh rendering | Visual test | no | Bone palette. |
-| M4-09 | Keen model and walk/jump animations | Asset viewer + gameplay test | partial | Static Keen model and player draw work; skeletal clips pending. |
-| M4-10 | Respawn and death animation | Gameplay test | no | Lives/health integration. |
+| M3-02 | Full lightmap/material-layer validation | Visual comparison on Level 1/5 | partial | Base + lightmap path works; broader layer combinations unverified. |
+| M3-03 | Point/spot lights from JSON | Unit test light parsing + visual test | partial | Directional sun + ambient active; point/spot pending. |
+| M3-04 | HDR offscreen target | Renderer smoke test | no | Current rendering goes directly to the sRGB swapchain. |
+| M3-05 | Tone mapping/gamma composite | Shader compile + visual test | no | Depends on HDR target. |
+| M3-06 | Alpha-test/alpha-blend/additive pipelines | Visual test | no | Signs, glass, effects need these. |
+| M3-07 | FXAA or MSAA | Visual test | no | Not implemented. |
+| M3-08 | Skybox and fog | Visual test | no | Not implemented. |
+| M3-09 | Blob shadows | Visual test | no | No character grounding shadow yet. |
+| M3-10 | Directional shadow maps | Visual test + performance check | no | Not implemented. |
+| M3-11 | Optional SSAO/bloom | Visual test | no | Not implemented. |
+| M3-12 | Normal mapping support | Visual test | no | Tangents/normal maps not wired. |
 
-## M5 - Level 1 Vertical Slice
-
-| ID | Task | Tests | Verified | Notes |
-|---|---|---|---|---|
-| M5-01 | Pogo pickup and equipping | Gameplay test | no | Pickup -> HUD state. |
-| M5-02 | Pogo bounce and chained bounce | Trajectory tests | yes | Pogo bounce is implemented and tested; pickup integration pending. |
-| M5-03 | Laser firing and ammo | Gameplay test | partial | Hitscan laser and visible beam work; ammo/cooldowns are debug-only. |
-| M5-04 | Static impact effects | Visual test | no | Zap/Zot sprites. |
-| M5-05 | Yorp AI patrol/chase | AI simulation tests | partial | Yorp actor movement/landing and hit detection exist; richer AI pending. |
-| M5-06 | Yorp stun with `YorpConk` | Gameplay test + animation check | partial | Laser stun state and enemy stop behavior work; `YorpConk` animation pending. |
-| M5-07 | Yorp death with `YorpDie` | Gameplay test | no | Repeated hits or stomp rule. |
-| M5-08 | Pickup items and score | Gameplay test | no | Items from legacy assets. |
-| M5-09 | Health, ammo, lives, and blue key | Gameplay test | no | HUD state. |
-| M5-10 | Exit trigger and level transition | Gameplay test | no | Target level from JSON. |
-| M5-11 | HUD and stats art | Visual test | no | Use old GUI textures. |
-| M5-12 | Procedural sound effects and mixer | Audible smoke test | no | Laser, pogo, pickup, hurt. |
-| M5-13 | Level 1 completable | Replay test + manual playthrough | no | Milestone acceptance. |
-
-## M6 - Full Backport Pass
+## Player, Physics, Camera, Animation
 
 | ID | Task | Tests | Verified | Notes |
 |---|---|---|---|---|
-| M6-01 | Level 2 import and placement | Level validation + playthrough | no | `Level2ba.b3d`, `level2.dat`. |
-| M6-02 | Level 5 import and manual pogo placement | Level validation + playthrough | no | No `.dat`. |
-| M6-03 | Map hub import and level entrances | Level validation + playthrough | no | `map2b.b3d`. |
-| M6-04 | Garg AI and animations | Gameplay test | no | Walk/think/die/dead. |
-| M6-05 | PatPat support | Gameplay test | no | Optional enemy. |
-| M6-06 | Title and controls screens | Visual test | no | Old GUI art. |
-| M6-07 | Options: fullscreen/windowed, resolution, audio | Settings tests | no | Persisted config. |
-| M6-08 | Pause and game over | State tests | no | Scene transitions. |
-| M6-09 | Update backport manifest statuses | `gokeen-levelcheck` | no | validated/playable. |
-| M6-10 | Verify all assets embedded and runtime self-contained | Build test without `old_game` | no | Single binary. |
+| M4-02 | Step-up/slope/ledge tuning | Physics/gameplay tests | partial | Basic capsule movement/landing works; tuning pending. |
+| M4-04 | Run simulation on fixed 120 Hz tick | Determinism/replay test | partial | Clock exists; runtime still uses variable frame delta. |
+| M4-06 | Third-person spring-arm collision | Camera collision tests + visual | partial | Camera orbit works; no obstruction handling. |
+| M4-10 | Death animation and game-over flow | Gameplay test | partial | Fall respawn/lives work; death/game-over UI pending. |
+| M4-13 | Animation blending/transitions | Animation tests + visual | no | Clips snap between states; death clip not wired. |
+| M4-14 | Refine gun grip on hand bone | Visual check | partial | Gun follows `HandR`; exact grip offset/rotation still tuned manually. |
 
-## M7 - Polish and Editor Readiness
+## Level 1 Vertical Slice
 
 | ID | Task | Tests | Verified | Notes |
 |---|---|---|---|---|
-| M7-01 | Performance profiling and culling | Frame timing report | no | Target 60 FPS at 1080p. |
-| M7-02 | Spatial chunking and batching | Renderer stats test | no | Large map. |
-| M7-03 | Save/settings persistence | Unit tests | no | XDG config path. |
-| M7-04 | Level JSON round-trip preservation | `go test ./levels` | no | Editor metadata and unknown fields. |
-| M7-05 | Entity editor schema exposure | `go test ./entities/...` | no | Drives future editor UI. |
-| M7-06 | Asset viewer evolves into editor viewport | Manual check | no | Selection, transform gizmos later. |
-| M7-07 | Reproducible conversion/report output | Hash comparison test | no | No timestamps in generated output. |
-| M7-08 | Cross-platform build tags and docs | Linux build + cross-compile check | no | Windows/macOS later. |
-| M7-09 | Final `gofmt`, `go vet`, `go test ./...` | Commands pass | yes | Release gate. |
+| M5-04 | Impact effects (Zap/Zot) | Visual test | no | Projectiles hit, but no impact sprite/flash. |
+| M5-05 | Richer Yorp AI | AI simulation tests | partial | Movement/landing/stun exist; patrol/chase/ledge logic incomplete. |
+| M5-06 | Yorp `YorpConk` animation | Visual/animation test | partial | Stun state works; Yorp still uses a static mesh. |
+| M5-07 | Yorp death (`YorpDie`) | Gameplay test | no | No death rule/animation yet. |
+| M5-08 | Remaining item models/pickups | Visual test | partial | Pogo/gun/key/pizza/soda work; lollipop/book/bear/signs pending. |
+| M5-09 | HUD state presentation | Visual test | partial | State exists; only window-title debug HUD is rendered. |
+| M5-10 | Real exit placement in all levels | Playthrough test | partial | Level 1 -> Level 2 works; other levels have no exits. |
+| M5-11 | HUD/stats art | Visual test | no | Use old GUI assets or new UI. |
+| M5-12 | Procedural SFX and mixer | Audible smoke test | no | Laser, pogo, pickup, hit, hurt sounds pending. |
+| M5-13 | Level 1 fully completable/tuned | Replay test + playthrough | partial | Loop exists; placement and tuning incomplete. |
+
+## Enemies, UI, and Game Flow
+
+| ID | Task | Tests | Verified | Notes |
+|---|---|---|---|---|
+| M6-04 | Garg model/AI/animations | Gameplay test | no | Assets exist; not imported/used. |
+| M6-05 | PatPat support | Gameplay test | no | Assets exist; not imported/used. |
+| M6-06 | Title and controls screens | Visual test | no | GUI art exists. |
+| M6-07 | Options: fullscreen/resolution/audio | Settings tests | no | No settings UI/persistence. |
+| M6-08 | Pause and game-over screens | State tests | no | No scene/state manager. |
+| M6-10 | Verify fully self-contained runtime build | Build without `old_game` | no | Embedded assets are used, but this is not yet asserted in CI. |
+
+## Polish and Editor Readiness
+
+| ID | Task | Tests | Verified | Notes |
+|---|---|---|---|---|
+| M7-01 | Performance profiling and culling | Frame timing report | no | No frustum culling/spatial batching yet. |
+| M7-02 | Spatial chunking and batching | Renderer stats test | no | Large map still relies on a few large meshes. |
+| M7-03 | Save/settings persistence | Unit tests | no | No config/save files. |
+| M7-04 | Level JSON round-trip preservation | `go test ./levels` | no | Unknown editor fields are not preserved. |
+| M7-05 | Editor schema exposure | `go test ./entities/...` | partial | Registry metadata exists; runtime/editor schema incomplete. |
+| M7-06 | Editor viewport foundation | Manual check | no | Only a fly-camera level viewer exists. |
+| M7-07 | Reproducible conversion report checks | Hash comparison test | partial | Pack output is deterministic; report verification is not automated. |
+| M7-08 | Windows/macOS build support | Cross-platform build check | no | Linux-first cgo/SDL/Vulkan implementation only. |
+
+## Latest Verification Snapshot
+
+```text
+go test -count=1 ./...   PASS
+go vet ./...             PASS
+make assetcheck          PASS
+make levelcheck          PASS
+
+gokeen -frames 3                 PASS
+gokeen -spawn-at-exit            Level 1 -> Level 2 PASS
+gokeen -autofire                 projectile/gun visual check PASS
+gokeen + hold W                  skinned walk animation visual check PASS
+ESC / SIGTERM exit               cursor-release smoke check PASS
+```
+
+Automated renderer screenshot tests are still missing; visual checks are manual.

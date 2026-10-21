@@ -120,6 +120,37 @@ func (w *Window) SetRelativeMouse(enabled bool) {
 	C.gk_set_relative_mouse(w.ptr, value)
 }
 
+func (w *Window) SetCursorVisible(visible bool) {
+	value := C.int(0)
+	if visible {
+		value = 1
+	}
+	C.gk_show_cursor(value)
+}
+
+func (w *Window) CaptureMouse() {
+	if w == nil || w.ptr == nil {
+		return
+	}
+	C.gk_capture_mouse(w.ptr)
+}
+
+func (w *Window) ReleaseMouse() {
+	if w == nil || w.ptr == nil {
+		return
+	}
+	C.gk_release_mouse(w.ptr)
+}
+
+func (w *Window) SetTitle(title string) {
+	if w == nil || w.ptr == nil {
+		return
+	}
+	cTitle := C.CString(title)
+	defer C.free(unsafe.Pointer(cTitle))
+	C.gk_set_title(w.ptr, cTitle)
+}
+
 func (w *Window) VulkanExtensions() ([]string, error) {
 	if w == nil || w.ptr == nil {
 		return nil, fmt.Errorf("nil SDL window")

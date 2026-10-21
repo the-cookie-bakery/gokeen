@@ -79,6 +79,81 @@
         ]
       },
       "properties": {}
+    },
+    {
+      "id": "pogo_01",
+      "type": "pickup",
+      "transform": {
+        "position": [
+          1.470874786,
+          12.5,
+          -11.979126
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "properties": {
+        "item": "pogo",
+        "score": 100
+      }
+    },
+    {
+      "id": "gun_01",
+      "type": "pickup",
+      "transform": {
+        "position": [
+          -1.529125214,
+          12.5,
+          -11.979126
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "properties": {
+        "item": "gun",
+        "amount": 30,
+        "score": 100
+      }
+    },
+    {
+      "id": "exit_01",
+      "type": "exit",
+      "transform": {
+        "position": [
+          -3.72,
+          12.15,
+          -60.0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "properties": {
+        "target_level": "level2"
+      }
     }
   ],
   "lights": [],

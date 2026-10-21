@@ -16,19 +16,28 @@ type Input struct {
 }
 
 type Controller struct {
-	Position     maths.Vec3
-	Velocity     maths.Vec3
-	Radius       float32
-	Height       float32
-	MoveSpeed    float32
-	Acceleration float32
-	AirControl   float32
-	JumpSpeed    float32
-	Gravity      float32
-	Grounded     bool
-	Yaw          float32
-	PogoEnabled  bool
-	PogoSpeed    float32
+	Position       maths.Vec3
+	Velocity       maths.Vec3
+	Radius         float32
+	Height         float32
+	MoveSpeed      float32
+	Acceleration   float32
+	AirControl     float32
+	JumpSpeed      float32
+	Gravity        float32
+	Grounded       bool
+	Yaw            float32
+	PogoEnabled    bool
+	PogoSpeed      float32
+	Health         int
+	MaxHealth      int
+	Lives          int
+	Ammo           int
+	Score          int
+	BlueKey        bool
+	HasGun         bool
+	Spawn          maths.Vec3
+	ModelYawOffset float32
 }
 
 func New(position maths.Vec3) *Controller {
@@ -42,6 +51,10 @@ func New(position maths.Vec3) *Controller {
 		JumpSpeed:    9.5,
 		Gravity:      26,
 		PogoSpeed:    15,
+		Health:       100,
+		MaxHealth:    100,
+		Lives:        3,
+		Spawn:        position,
 	}
 }
 
@@ -98,8 +111,7 @@ func (c *Controller) Update(dt float32, in Input, world *physics.Mesh) {
 		}
 	}
 	if c.Position.Y < -100 {
-		c.Position = maths.V3(0, 20, 0)
-		c.Velocity = maths.Vec3{}
+		c.Respawn()
 	}
 }
 
@@ -112,8 +124,17 @@ func (c *Controller) groundCheck(world *physics.Mesh, capsule physics.Capsule) b
 	return ok && hit.Normal.Y > 0.5
 }
 
+func (c *Controller) Respawn() {
+	c.Position = c.Spawn
+	c.Velocity = maths.Vec3{}
+	c.Grounded = false
+	if c.Lives > 0 {
+		c.Lives--
+	}
+}
+
 func (c *Controller) ModelMatrix(modelOffset maths.Vec3, scale float32) maths.Mat4 {
-	rot := maths.QFromAxisAngle(maths.V3(0, 1, 0), c.Yaw)
+	rot := maths.QFromAxisAngle(maths.V3(0, 1, 0), -c.Yaw+c.ModelYawOffset)
 	return maths.M4Translate(c.Position.Add(modelOffset)).
 		Mul(maths.M4Rotation(rot)).
 		Mul(maths.M4Scale(maths.V3(scale, scale, scale)))

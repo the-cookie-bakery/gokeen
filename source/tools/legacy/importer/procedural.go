@@ -19,6 +19,13 @@ func (c *Converter) AddProceduralAssets() {
 			Layers: []assets.MaterialLayer{{Texture: "tex_white", UVSet: 0, Blend: assets.BlendReplace}},
 		}
 	}
+	if _, ok := c.pack.Materials["mat_laser"]; !ok {
+		c.pack.Materials["mat_laser"] = assets.Material{
+			ID: "mat_laser", Name: "laser", BaseColor: [4]float32{0.2, 1, 1, 1},
+			Specular: [3]float32{0.5, 0.5, 0.5}, Shininess: 64,
+			Layers: []assets.MaterialLayer{{Texture: "tex_white", UVSet: 0, Blend: assets.BlendReplace}},
+		}
+	}
 	if _, ok := c.pack.Meshes["debug_cube"]; ok {
 		return
 	}
@@ -43,6 +50,11 @@ func (c *Converter) AddProceduralAssets() {
 		Submeshes: []assets.Submesh{{Material: "mat_debug", IndexStart: 0, IndexCount: uint32(len(indices))}},
 	}
 	c.pack.Meshes[mesh.ID] = mesh
+	laser := mesh
+	laser.ID = "laser_bolt"
+	laser.Name = "laser bolt"
+	laser.Submeshes = []assets.Submesh{{Material: "mat_laser", IndexStart: 0, IndexCount: uint32(len(indices))}}
+	c.pack.Meshes[laser.ID] = laser
 }
 
 func cubeVertex(x, y, z, nx, ny, nz, u, v float32) assets.Vertex {

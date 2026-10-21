@@ -62,8 +62,29 @@ func (p *Pack) Validate() error {
 			errs = append(errs, fmt.Errorf("mesh %q submeshes overlap or exceed the index buffer", id))
 		}
 		if m.Skeleton != "" {
-			if _, ok := p.Skeletons[m.Skeleton]; !ok {
+			skel, ok := p.Skeletons[m.Skeleton]
+			if !ok {
 				errs = append(errs, fmt.Errorf("mesh %q references missing skeleton %q", id, m.Skeleton))
+			} else {
+				for vi, v := range m.Vertices {
+					var sum float32
+					for bi, boneIndex := range v.BoneIndices {
+						weight := v.BoneWeights[bi]
+						if weight < 0 || weight > 1.0001 {
+							errs = append(errs, fmt.Errorf("mesh %q vertex %d has invalid bone weight %v", id, vi, weight))
+							break
+						}
+						if weight > 0 && int(boneIndex) >= len(skel.Bones) {
+							errs = append(errs, fmt.Errorf("mesh %q vertex %d references bone %d of %d", id, vi, boneIndex, len(skel.Bones)))
+							break
+						}
+						sum += weight
+					}
+					if sum > 1.001 {
+						errs = append(errs, fmt.Errorf("mesh %q vertex %d bone weights sum to %v", id, vi, sum))
+						break
+					}
+				}
 			}
 		}
 	}

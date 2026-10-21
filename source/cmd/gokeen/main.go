@@ -3,24 +3,78 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"math"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"gokeen/assets"
+	"gokeen/engine/animations"
 	"gokeen/engine/core"
-	"gokeen/engine/mathematics"
+	maths "gokeen/engine/mathematics"
 	"gokeen/engine/physics"
 	"gokeen/engine/platforms/sdl2"
 	"gokeen/engine/renderers/vulkan"
 	"gokeen/gameplay/cameras"
 	"gokeen/gameplay/enemies"
+	"gokeen/gameplay/pickups"
 	"gokeen/gameplay/players"
+	"gokeen/gameplay/triggers"
+	"gokeen/gameplay/weapons"
 	"gokeen/levels"
 )
+
+type config struct {
+	width       int
+	height      int
+	fullscreen  bool
+	frames      int
+	title       string
+	fly         bool
+	pogo        bool
+	autofire    bool
+	spawnAtExit bool
+}
+
+type gameRuntime struct {
+	window     *sdl2.Window
+	renderer   *vulkan.Renderer
+	store      *assets.Store
+	pack       *assets.Pack
+	cfg        config
+	keys       map[int]bool
+	mouse      map[int]bool
+	clock      *core.WallClock
+	frameCount int
+	player     *players.Controller
+	signals    chan os.Signal
+}
+
+type activeEnemy struct {
+	enemy    *enemies.Enemy
+	instance *vulkan.MeshInstance
+}
+
+type activePickup struct {
+	cfg       pickups.Config
+	mesh      assets.Mesh
+	instance  *vulkan.MeshInstance
+	position  maths.Vec3
+	offset    maths.Vec3
+	scale     float32
+	phase     float32
+	collected bool
+}
+
+type activeExit struct {
+	target   string
+	position maths.Vec3
+}
 
 func main() {
 	width := flag.Int("width", 1280, "window width")
@@ -32,15 +86,21 @@ func main() {
 	fly := flag.Bool("fly", false, "use the free-fly viewer camera instead of the player")
 	pogo := flag.Bool("pogo", false, "start with the pogo stick enabled")
 	autofire := flag.Bool("autofire", false, "hold the laser trigger (debug)")
+	spawnAtExit := flag.Bool("spawn-at-exit", false, "spawn on the first exit trigger (debug)")
 	flag.Parse()
 
-	if err := run(*width, *height, *fullscreen, *frames, *title, *levelID, *fly, *pogo, *autofire); err != nil {
+	cfg := config{
+		width: *width, height: *height, fullscreen: *fullscreen,
+		frames: *frames, title: *title, fly: *fly, pogo: *pogo, autofire: *autofire,
+		spawnAtExit: *spawnAtExit,
+	}
+	if err := run(cfg, levels.LevelID(*levelID)); err != nil {
 		fmt.Fprintln(os.Stderr, "gokeen:", err)
 		os.Exit(1)
 	}
 }
 
-func run(width, height int, fullscreen bool, frames int, title, levelID string, fly, pogo, autofire bool) error {
+func run(cfg config, start levels.LevelID) error {
 	pack, err := assets.LoadEmbedded()
 	if err != nil {
 		return fmt.Errorf("load embedded assets: %w", err)
@@ -49,222 +109,453 @@ func run(width, height int, fullscreen bool, frames int, title, levelID string, 
 	if err != nil {
 		return fmt.Errorf("validate embedded assets: %w", err)
 	}
-	level, err := levels.LoadEmbedded(levels.LevelID(levelID), levels.StoreResolver{Store: store}, nil)
-	if err != nil {
-		return fmt.Errorf("load embedded level: %w", err)
-	}
-	fmt.Printf("GoKeen: %d meshes, %d materials, level %s loaded\n", len(pack.Meshes), len(pack.Materials), level.ID)
 	if err := sdl2.Init(); err != nil {
 		return err
 	}
 	defer sdl2.Quit()
-
-	window, err := sdl2.CreateWindow(title, width, height, fullscreen)
+	window, err := sdl2.CreateWindow(cfg.title, cfg.width, cfg.height, cfg.fullscreen)
 	if err != nil {
 		return err
 	}
 	defer window.Destroy()
-	window.SetRelativeMouse(true)
-
-	renderer, err := vulkan.New(window, width, height)
+	defer window.ReleaseMouse()
+	window.CaptureMouse()
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(signals)
+	renderer, err := vulkan.New(window, cfg.width, cfg.height)
 	if err != nil {
 		return err
 	}
 	defer renderer.Destroy()
-	if err := renderer.UploadScene(store, level); err != nil {
-		return fmt.Errorf("upload scene: %w", err)
-	}
 
+	player := players.New(maths.Vec3{})
+	player.PogoEnabled = cfg.pogo
+	player.HasGun = true
+	player.Ammo = 50
+	rt := &gameRuntime{
+		window: window, renderer: renderer, store: store, pack: pack, cfg: cfg,
+		keys: make(map[int]bool), mouse: make(map[int]bool),
+		clock: core.NewWallClock(), player: player, signals: signals,
+	}
+	current := start
+	for {
+		next, quit, err := rt.playLevel(current)
+		if err != nil {
+			return err
+		}
+		if quit || next == "" {
+			return nil
+		}
+		current = levels.LevelID(next)
+	}
+}
+
+func (g *gameRuntime) playLevel(id levels.LevelID) (next string, quit bool, err error) {
+	level, err := levels.LoadEmbedded(id, levels.StoreResolver{Store: g.store}, nil)
+	if err != nil {
+		return "", false, fmt.Errorf("load embedded level: %w", err)
+	}
+	fmt.Printf("GoKeen: level %s loaded (%d entities)\n", level.ID, len(level.Entities))
+	if err := g.renderer.UploadScene(g.store, level); err != nil {
+		return "", false, fmt.Errorf("upload scene: %w", err)
+	}
+	collision := g.buildCollision(level)
 	spawn := level.Spawn.Position.Vector()
-	cam := camera{
+	g.player.Spawn = spawn
+	g.player.Position = spawn
+	g.player.Velocity = maths.Vec3{}
+	g.player.ModelYawOffset = 0
+	g.player.Grounded = false
+
+	flyCam := camera{
 		position: spawn.Add(maths.V3(0, 3, 12)),
 		yaw:      0,
 		pitch:    -0.15,
 		speed:    12,
 	}
-	var collision *physics.Mesh
-	if len(level.Geometry) > 0 {
-		collisionID := level.Geometry[0].Collision
-		if collisionID == "" {
-			collisionID = level.Geometry[0].Mesh
-		}
-		if collisionMesh, err := store.Mesh(assets.MeshID(collisionID)); err == nil {
-			positions := make([]maths.Vec3, len(collisionMesh.Vertices))
-			for i, v := range collisionMesh.Vertices {
-				positions[i] = v.Position
-			}
-			collision = physics.NewMesh(physics.TrianglesFromIndexed(positions, collisionMesh.Indices))
-		}
+	third := cameras.NewThirdPerson(g.player.Center())
+	var playerInstance *vulkan.SkinnedInstance
+	var gunInstance *vulkan.MeshInstance
+	var enemiesList []activeEnemy
+	var pickupList []activePickup
+	var exitList []activeExit
+	var laserCooldown, shootTimer float32
+	type projectileSlot struct {
+		projectile *weapons.Projectile
+		instance   *vulkan.MeshInstance
 	}
-	player := players.New(spawn)
-	player.PogoEnabled = pogo
-	third := cameras.NewThirdPerson(player.Center())
-	var playerInstance *vulkan.MeshInstance
-	type activeEnemy struct {
-		enemy    *enemies.Enemy
-		instance *vulkan.MeshInstance
-	}
-	var activeEnemies []activeEnemy
-	if !fly {
-		playerInstance, err = renderer.AddMeshInstance(store, "player_keen")
+	projectiles := make([]projectileSlot, 16)
+
+	if !g.cfg.fly {
+		playerInstance, err = g.renderer.AddSkinnedInstance(g.store, "player_keen_skinned", map[string]animations.ClipID{
+			"walk":  "clip_keen_walk",
+			"shoot": "clip_keen_shoot",
+			"jump":  "clip_keen_jump",
+			"die":   "clip_keen_die",
+		})
 		if err != nil {
-			return fmt.Errorf("add player mesh: %w", err)
+			return "", false, fmt.Errorf("add skinned player mesh: %w", err)
+		}
+		playerInstance.SetClip("walk")
+		playerInstance.SetPaused(true)
+		gunInstance, err = g.renderer.AddMeshInstance(g.store, "item_gun")
+		if err != nil {
+			return "", false, fmt.Errorf("add gun mesh: %w", err)
+		}
+		for i := range projectiles {
+			inst, err := g.renderer.AddMeshInstance(g.store, "laser_bolt")
+			if err != nil {
+				return "", false, fmt.Errorf("add projectile mesh: %w", err)
+			}
+			inst.SetTransform(maths.M4Scale(maths.Vec3{}))
+			projectiles[i] = projectileSlot{instance: inst}
 		}
 		for _, spec := range level.Entities {
-			if spec.Type != "yorp" {
-				continue
+			switch spec.Type {
+			case "yorp":
+				enemy := enemies.New(spec.Transform.Position.Vector())
+				instance, err := g.renderer.AddMeshInstance(g.store, "yorp")
+				if err != nil {
+					return "", false, fmt.Errorf("add yorp mesh: %w", err)
+				}
+				enemiesList = append(enemiesList, activeEnemy{enemy: enemy, instance: instance})
+			case "pickup":
+				var cfg pickups.Config
+				if len(spec.Properties) > 0 {
+					if err := json.Unmarshal(spec.Properties, &cfg); err != nil {
+						return "", false, fmt.Errorf("pickup %s: %w", spec.ID, err)
+					}
+				}
+				meshID := pickupMeshID(cfg.Item)
+				if meshID == "" {
+					fmt.Printf("warning: pickup %s has unsupported item %q\n", spec.ID, cfg.Item)
+					continue
+				}
+				mesh, err := g.store.Mesh(meshID)
+				if err != nil {
+					return "", false, err
+				}
+				instance, err := g.renderer.AddMeshInstance(g.store, meshID)
+				if err != nil {
+					return "", false, fmt.Errorf("add pickup mesh %s: %w", meshID, err)
+				}
+				scale := float32(0.8)
+				offset := maths.V3(0, -mesh.Bounds.Min.Y*scale, 0)
+				pickupList = append(pickupList, activePickup{
+					cfg: cfg, mesh: mesh, instance: instance,
+					position: spec.Transform.Position.Vector(), offset: offset, scale: scale,
+					phase: float32(len(pickupList)) * 1.7,
+				})
+				_ = mesh
+			case "exit":
+				var cfg struct {
+					TargetLevel string `json:"target_level"`
+				}
+				if len(spec.Properties) > 0 {
+					_ = json.Unmarshal(spec.Properties, &cfg)
+				}
+				mesh, err := g.store.Mesh("exit_sign")
+				if err == nil {
+					instance, err := g.renderer.AddMeshInstance(g.store, "exit_sign")
+					if err != nil {
+						return "", false, fmt.Errorf("add exit mesh: %w", err)
+					}
+					scale := float32(1.0)
+					offset := maths.V3(0, -mesh.Bounds.Min.Y*scale, 0)
+					pos := spec.Transform.Position.Vector()
+					instance.SetTransform(maths.M4Translate(pos.Add(offset)).Mul(maths.M4Scale(maths.V3(scale, scale, scale))))
+				}
+				exitList = append(exitList, activeExit{target: cfg.TargetLevel, position: spec.Transform.Position.Vector()})
 			}
-			enemy := enemies.New(spec.Transform.Position.Vector())
-			instance, err := renderer.AddMeshInstance(store, "yorp")
-			if err != nil {
-				return fmt.Errorf("add yorp mesh: %w", err)
-			}
-			activeEnemies = append(activeEnemies, activeEnemy{enemy: enemy, instance: instance})
 		}
 	}
-	keys := make(map[int]bool)
-	mouseButtons := make(map[int]bool)
-	var laserInstance *vulkan.MeshInstance
-	var laserCooldown, laserVisible float32
-	if !fly {
-		laserInstance, err = renderer.AddMeshInstance(store, "debug_cube")
-		if err != nil {
-			return fmt.Errorf("add laser mesh: %w", err)
-		}
-		laserInstance.SetTransform(maths.M4Scale(maths.V3(0, 0, 0)))
+
+	if g.cfg.spawnAtExit && len(exitList) > 0 {
+		g.player.Position = exitList[0].position
+		g.player.Velocity = maths.Vec3{}
+		fmt.Println("debug: spawning at exit")
 	}
-	clock := core.NewWallClock()
-	frameCount := 0
+	animTime := float32(0)
 	running := true
 	for running {
+		select {
+		case <-g.signals:
+			g.window.ReleaseMouse()
+			return "", true, nil
+		default:
+		}
 		for {
-			event, ok := window.Poll()
+			event, ok := g.window.Poll()
 			if !ok {
 				break
 			}
 			switch event.Type {
 			case sdl2.EventQuit:
-				running = false
+				g.window.ReleaseMouse()
+				return "", true, nil
 			case sdl2.EventKey:
-				keys[event.Key] = event.Action == 1
+				g.keys[event.Key] = event.Action == 1
 				if event.Action == 1 && event.Key == 27 {
-					running = false
+					g.window.ReleaseMouse()
+					return "", true, nil
 				}
 			case sdl2.EventMouseButton:
-				mouseButtons[event.Button] = event.Action == 1
+				g.mouse[event.Button] = event.Action == 1
 			case sdl2.EventMouseMove:
-				if fly {
-					cam.yaw -= float32(event.MouseDX) * 0.002
-					cam.pitch -= float32(event.MouseDY) * 0.002
-					if cam.pitch > 1.4 {
-						cam.pitch = 1.4
-					}
-					if cam.pitch < -1.4 {
-						cam.pitch = -1.4
-					}
+				if g.cfg.fly {
+					flyCam.yaw += float32(event.MouseDX) * 0.002
+					flyCam.pitch -= float32(event.MouseDY) * 0.002
+					flyCam.pitch = clamp(flyCam.pitch, -1.4, 1.4)
 				} else {
 					third.Look(float32(event.MouseDX), float32(event.MouseDY))
 				}
 			case sdl2.EventResize:
 				if event.Width > 0 && event.Height > 0 {
-					if err := renderer.Resize(event.Width, event.Height); err != nil {
-						return err
+					if err := g.renderer.Resize(event.Width, event.Height); err != nil {
+						return "", false, err
 					}
 				}
 			}
 		}
-		if !running {
-			break
-		}
-		dt := float32(clock.Delta())
+		dt := float32(g.clock.Delta())
 		if dt > 0.1 {
 			dt = 0.1
 		}
-		w, h := renderer.Extent()
-		if fly {
-			cam.update(dt, keys)
+		animTime += dt
+		w, h := g.renderer.Extent()
+		if g.cfg.fly {
+			flyCam.update(dt, g.keys)
 			if w > 0 && h > 0 {
-				cam.setCamera(renderer, float32(w)/float32(h))
+				flyCam.setCamera(g.renderer, float32(w)/float32(h))
 			}
 		} else {
 			input := players.Input{Yaw: third.Yaw}
-			if keys[int('w')] || keys[1073741906] {
+			if g.keys[int('w')] || g.keys[1073741906] {
 				input.Forward = 1
 			}
-			if keys[int('s')] || keys[1073741905] {
+			if g.keys[int('s')] || g.keys[1073741905] {
 				input.Forward = -1
 			}
-			if keys[int('a')] || keys[1073741904] {
+			if g.keys[int('a')] || g.keys[1073741904] {
 				input.Strafe = -1
 			}
-			if keys[int('d')] || keys[1073741903] {
+			if g.keys[int('d')] || g.keys[1073741903] {
 				input.Strafe = 1
 			}
-			input.Jump = keys[int(' ')] || keys[1073742048]
+			input.Jump = g.keys[int(' ')] || g.keys[1073742048]
 			input.Pogo = input.Jump
-			player.Update(dt, input, collision)
-			playerInstance.SetTransform(player.ModelMatrix(maths.V3(0, 0.462, 0), 0.8))
-			for _, active := range activeEnemies {
+			g.player.Update(dt, input, collision)
+			moving := input.Forward != 0 || input.Strafe != 0
+			if shootTimer > 0 {
+				shootTimer -= dt
+				playerInstance.SetClip("shoot")
+				playerInstance.SetPaused(false)
+			} else if !g.player.Grounded {
+				playerInstance.SetClip("jump")
+				playerInstance.SetPaused(false)
+			} else if moving {
+				playerInstance.SetClip("walk")
+				playerInstance.SetPaused(false)
+			} else {
+				playerInstance.SetClip("walk")
+				playerInstance.SetPaused(true)
+			}
+			playerInstance.SetHeadPitch(clamp(-third.Pitch, -0.7, 0.7))
+			playerInstance.Update(dt)
+			playerModel := g.player.ModelMatrix(maths.V3(0, 2.03, 0), 0.036)
+			playerInstance.SetTransform(playerModel)
+			aim := third.Forward()
+			up := maths.V3(0, 1, 0)
+			right := aim.Cross(up).Normalize()
+			gunPos := g.player.Position.Add(maths.V3(0, g.player.Height*0.55, 0)).
+				Add(right.Scale(0.5)).Add(aim.Scale(0.3))
+			if handPos, ok := playerInstance.BoneModelPosition("HandR"); ok {
+				gunPos = playerModel.TransformPoint(handPos).Add(aim.Scale(0.18)).Add(right.Scale(-0.08))
+			}
+			muzzle := gunPos.Add(aim.Scale(0.5))
+			shotDir := aim
+			gunModel := maths.M4Translate(gunPos).
+				Mul(maths.M4Rotation(quatFromForward(shotDir))).
+				Mul(maths.M4Scale(maths.V3(0.8, 0.8, 0.8)))
+			gunInstance.SetTransform(gunModel)
+			for _, active := range enemiesList {
 				active.enemy.Update(dt, collision)
 				active.instance.SetTransform(active.enemy.ModelMatrix(maths.V3(0, 0.331, 0), 0.7))
+			}
+			for i := range pickupList {
+				p := &pickupList[i]
+				if p.collected {
+					continue
+				}
+				bob := float32(math.Sin(float64(animTime*2 + p.phase)))
+				pos := p.position.Add(maths.V3(0, bob*0.2, 0))
+				model := maths.M4Translate(pos.Add(p.offset)).
+					Mul(maths.M4Rotation(maths.QFromAxisAngle(maths.V3(0, 1, 0), animTime*2+p.phase))).
+					Mul(maths.M4Scale(maths.V3(p.scale, p.scale, p.scale)))
+				p.instance.SetTransform(model)
+				if g.player.Center().Distance(pos) < 2.4 {
+					message, ok := pickups.Apply(g.player, p.cfg)
+					if ok {
+						fmt.Printf("picked up %s (score %d, ammo %d, pogo %v, key %v)\n", message, g.player.Score, g.player.Ammo, g.player.PogoEnabled, g.player.BlueKey)
+						p.collected = true
+						p.instance.SetTransform(maths.M4Scale(maths.Vec3{}))
+					}
+				}
 			}
 			if laserCooldown > 0 {
 				laserCooldown -= dt
 			}
-			if laserVisible > 0 {
-				laserVisible -= dt
-				if laserVisible <= 0 {
-					laserInstance.SetTransform(maths.M4Scale(maths.V3(0, 0, 0)))
+			for i := range projectiles {
+				slot := &projectiles[i]
+				if slot.projectile == nil || !slot.projectile.Active {
+					continue
 				}
-			}
-			if (keys[int('f')] || mouseButtons[1] || autofire) && laserCooldown <= 0 {
-				dir := third.Forward()
-				origin := player.Position.Add(maths.V3(0, player.Height*0.6, 0)).Add(dir.Scale(0.6))
-				hitDist := float32(200)
+				previous, current := slot.projectile.Advance(dt)
+				delta := current.Sub(previous)
+				distance := delta.Length()
+				if distance <= 1e-5 || !slot.projectile.Active {
+					slot.projectile.Deactivate()
+					slot.instance.SetTransform(maths.M4Scale(maths.Vec3{}))
+					continue
+				}
+				dir := delta.Scale(1 / distance)
+				hitDist := distance
+				hit := false
 				if collision != nil {
-					if hit, ok := collision.Raycast(maths.NewRay(origin, dir), hitDist); ok {
-						hitDist = hit.Distance
+					if h, ok := collision.Raycast(maths.NewRay(previous, dir), distance); ok {
+						hitDist = h.Distance
+						hit = true
 					}
 				}
-				for _, active := range activeEnemies {
-					if dist, ok := active.enemy.RayHit(origin, dir, hitDist); ok {
+				for _, active := range enemiesList {
+					if d, ok := active.enemy.RayHit(previous, dir, hitDist); ok {
 						active.enemy.Stun(2)
-						hitDist = dist
+						hitDist = d
+						hit = true
 					}
 				}
-				end := origin.Add(dir.Scale(hitDist))
-				laserInstance.SetTransform(beamMatrix(origin, end, 0.06))
-				laserVisible = 0.12
-				laserCooldown = 0.18
-				if autofire {
-					laserVisible = 0.5
+				if hit {
+					slot.projectile.Deactivate()
+					slot.instance.SetTransform(maths.M4Scale(maths.Vec3{}))
+					continue
+				}
+				slot.instance.SetTransform(beamMatrix(current.Sub(dir.Scale(0.75)), current.Add(dir.Scale(0.75)), 0.2))
+			}
+			trigger := g.keys[int('f')] || g.mouse[1] || g.cfg.autofire
+			if trigger && laserCooldown <= 0 && g.player.HasGun && g.player.Ammo > 0 {
+				var slot *projectileSlot
+				for i := range projectiles {
+					if projectiles[i].projectile == nil || !projectiles[i].projectile.Active {
+						slot = &projectiles[i]
+						break
+					}
+				}
+				if slot != nil {
+					g.player.Ammo--
+					slot.projectile = weapons.Spawn(muzzle, shotDir, 30, 3)
+					slot.instance.SetTransform(beamMatrix(muzzle.Sub(shotDir.Scale(0.5)), muzzle.Add(shotDir.Scale(0.5)), 0.15))
+					laserCooldown = 0.18
+					shootTimer = 0.3
 				}
 			}
-			third.Target = player.Center()
+			third.Target = g.player.Center()
 			if w > 0 && h > 0 {
 				vp, pos := third.ViewProjection(float32(w) / float32(h))
-				renderer.SetCamera(vp, pos)
+				g.renderer.SetCamera(vp, pos)
+			}
+			for _, exit := range exitList {
+				if triggers.Reached(g.player.Position, exit.position, 3.2, 6) {
+					fmt.Printf("level %s complete", level.ID)
+					if exit.target != "" {
+						fmt.Printf(" -> %s", exit.target)
+					}
+					fmt.Println()
+					if exit.target == "" {
+						return "", true, nil
+					}
+					return exit.target, false, nil
+				}
 			}
 		}
-		if err := renderer.Frame(); err != nil {
+		g.window.SetTitle(fmt.Sprintf("GoKeen | %s | HP %d | Ammo %d | Score %d | Lives %d | Pogo %v",
+			level.ID, g.player.Health, g.player.Ammo, g.player.Score, g.player.Lives, g.player.PogoEnabled))
+		if err := g.renderer.Frame(); err != nil {
 			if errors.Is(err, vulkan.ErrOutOfDate) {
-				w, h := window.Size()
-				if err := renderer.Resize(w, h); err != nil {
-					return err
+				w, h := g.window.Size()
+				if err := g.renderer.Resize(w, h); err != nil {
+					return "", false, err
 				}
 			} else {
-				return err
+				return "", false, err
 			}
 		}
-		frameCount++
-		if frames > 0 && frameCount >= frames {
-			break
+		g.frameCount++
+		if g.cfg.frames > 0 && g.frameCount >= g.cfg.frames {
+			return "", true, nil
 		}
-		// The FIFO present mode already throttles to the display. A tiny sleep
-		// avoids spinning if the driver returns early on a minimized window.
 		time.Sleep(time.Millisecond)
 	}
-	return nil
+	return "", true, nil
+}
+
+func (g *gameRuntime) buildCollision(level *levels.Level) *physics.Mesh {
+	if len(level.Geometry) == 0 {
+		return nil
+	}
+	collisionID := level.Geometry[0].Collision
+	if collisionID == "" {
+		collisionID = level.Geometry[0].Mesh
+	}
+	mesh, err := g.store.Mesh(assets.MeshID(collisionID))
+	if err != nil {
+		fmt.Printf("warning: collision mesh %q unavailable: %v\n", collisionID, err)
+		return nil
+	}
+	positions := make([]maths.Vec3, len(mesh.Vertices))
+	for i, v := range mesh.Vertices {
+		positions[i] = v.Position
+	}
+	return physics.NewMesh(physics.TrianglesFromIndexed(positions, mesh.Indices))
+}
+
+func pickupMeshID(item pickups.Item) assets.MeshID {
+	switch item {
+	case pickups.Pogo:
+		return "item_pogo"
+	case pickups.Gun:
+		return "item_gun"
+	case pickups.BlueKey:
+		return "item_key"
+	case pickups.Pizza:
+		return "item_pizza"
+	case pickups.Soda:
+		return "item_soda"
+	default:
+		return ""
+	}
+}
+
+func quatFromForward(dir maths.Vec3) maths.Quat {
+	dir = dir.Normalize()
+	from := maths.V3(0, 0, -1)
+	dot := from.Dot(dir)
+	if dot < -0.9999 {
+		return maths.QFromAxisAngle(maths.V3(0, 1, 0), maths.Pi)
+	}
+	axis := from.Cross(dir).Normalize()
+	angle := float32(math.Acos(float64(dot)))
+	return maths.QFromAxisAngle(axis, angle)
+}
+
+func clamp(v, lo, hi float32) float32 {
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
 }
 
 type camera struct {
@@ -288,9 +579,6 @@ func (c *camera) right() maths.Vec3 {
 
 func (c *camera) update(dt float32, keys map[int]bool) {
 	speed := c.speed
-	if keys[303] || keys[304] { // shift variants vary by platform; keep a fallback
-		speed *= 3
-	}
 	var move maths.Vec3
 	fwd := maths.V3(c.forward().X, 0, c.forward().Z).Normalize()
 	right := maths.V3(c.right().X, 0, c.right().Z).Normalize()
@@ -327,12 +615,7 @@ func (c *camera) update(dt float32, keys map[int]bool) {
 	if keys[int('k')] {
 		c.pitch -= 1.0 * dt
 	}
-	if c.pitch > 1.4 {
-		c.pitch = 1.4
-	}
-	if c.pitch < -1.4 {
-		c.pitch = -1.4
-	}
+	c.pitch = clamp(c.pitch, -1.4, 1.4)
 }
 
 func (c *camera) setCamera(renderer *vulkan.Renderer, aspect float32) {
@@ -345,7 +628,7 @@ func beamMatrix(start, end maths.Vec3, thickness float32) maths.Mat4 {
 	d := end.Sub(start)
 	length := d.Length()
 	if length < 1e-4 {
-		return maths.M4Scale(maths.V3(0, 0, 0))
+		return maths.M4Scale(maths.Vec3{})
 	}
 	z := d.Scale(1 / length)
 	up := maths.V3(0, 1, 0)

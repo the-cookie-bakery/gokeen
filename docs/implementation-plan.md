@@ -11,7 +11,13 @@ The project reuses the original game's art and level content by converting the
 legacy `.b3d`, `.3ds`, and `.dat` files into new, editable source assets. The
 legacy formats are not used at runtime.
 
+See `current-state.md` for the current implemented snapshot, `architecture.md`
+for subsystem design, and `tasks.md` for the verified backlog.
+
 ## Locked Decisions
+
+The decisions below are targets for the project. See `current-state.md` for what
+is implemented right now.
 
 | Area | Decision |
 |---|---|
@@ -49,7 +55,7 @@ gokeen-assetconv
         +--> source/assets/sources/textures/*.png
         +--> source/assets/sources/manifest.json
         +--> source/levels/data/*.json
-        +--> build/verification-report.json
+        +--> build/asset-report.json
         |
         v
 packer
@@ -67,10 +73,10 @@ go:embed -> final binary
 - Materials are resolved per `TRIS` brush, not only from the `MESH` master brush.
 - Two UV sets are supported. Texture flag `0x10000` selects the second UV set.
 - Texture blend `5` is treated as multiply (legacy lightmap blending).
-- Skeletal nodes, bones, vertex weights, and keyframes become glTF skins and
-  animations.
+- Skeletal node/key data is parsed; conversion into glTF skins and animation
+  clips is planned.
 - Static level geometry is flattened to world space and split for culling.
-- 3DS files are parsed as big-endian chunked data.
+- 3DS files are parsed as little-endian chunked data.
 - Legacy texture paths are resolved by relative path first, then by lowercase
   basename, then by deterministic fallback.
 - Missing textures produce checker/average-color fallbacks and a report entry.
@@ -95,7 +101,7 @@ Core rules:
 - Geometry references mesh assets; polygon data is not embedded in level JSON.
 - No derived runtime data is persisted.
 - Optional `editor` metadata supports future layers, groups, locks, and notes.
-- Unknown extension data can be preserved for tools that do not understand it.
+- Preserving unknown extension fields on round-trip is a planned editor feature.
 
 Entity definitions are registered with a typed schema so the runtime, validator,
 and future editor agree on property fields.
@@ -222,9 +228,9 @@ and future editor agree on property fields.
 - `playable`
 - `polished`
 
-Initial backlog:
+Current backlog:
 
-| Level | Source | Entity data | Initial status |
+| Level | Source | Entity data | Current status |
 |---|---|---|---|
 | map | `Map/map2b.b3d` | manual | imported |
 | level1 | `Levels/Level1/Level1.b3d` | `level1.dat` | imported |
@@ -237,23 +243,32 @@ Initial backlog:
 
 ## Current Implementation Status
 
-The first implementation pass is complete for:
+The current snapshot is maintained in `current-state.md`. In short:
 
-- Core math, fixed-step clock, ECS, BVH/capsule physics, and animation sampling.
-- Typed asset IDs, deterministic asset packs, and embedded pack loading.
-- Strict level JSON loading, validation, entity registry, and backport manifest.
+Implemented:
+
+- Core math, ECS, fixed-step clock, BVH/capsule physics, animation sampling.
+- Typed asset IDs, deterministic `.gkp` packs, embedded pack loading.
+- Strict level JSON loading/validation and backport manifest.
 - Legacy B3D/3DS/.dat parsing, texture resolution, BMP/PNG conversion.
-- Static level conversion for `map`, `level1`, `level2`, and `level5`.
-- Editable glTF exports, conversion reports, and structural verification.
-- SDL2 window/input bridge, Vulkan instance/device/swapchain, clear/present.
-- Runnable `gokeen` executable with embedded assets.
-- Vulkan static mesh pipeline with depth buffer, textures, lightmaps, and
-  Blinn-Phong shading.
-- Fly-camera level viewer via `gokeen -level <id>`.
-- Third-person Keen model, capsule movement, jumping, pogo bounce, and a
-  basic Yorp actor.
-- Hitscan laser with a visible beam and Yorp stun state.
+- Static conversion for `map`, `level1`, `level2`, and `level5`.
+- Editable glTF exports, source manifest, conversion reports, and verification.
+- SDL2 window/input/surface bridge.
+- Vulkan static mesh pipeline with depth, textures, lightmaps, and Blinn-Phong
+  shading.
+- Third-person Keen controller with movement, jump, pogo, laser, and pickups.
+- Skinned Keen walk/jump/shoot animation and head pitch.
+- Hand-held gun and moving projectile laser.
+- Yorp actor with stun state.
+- Exit trigger and Level 1 -> Level 2 transition.
+- Cursor release on exit and SIGINT/SIGTERM.
+- Debug window-title HUD.
 
-Still pending: skinned animation pipeline, shadow maps, HDR/post-processing,
-pickup/exit/HUD integration, audio, full entity placement, and the editor
-foundation.
+Pending:
+
+- Skinned Yorp/Garg/PatPat animation and death clips.
+- HUD art, audio mixer/SFX, impact sprites.
+- Animation blending and exact hand-bone gun attachment.
+- Alpha/sprite/UI/skybox pipelines, HDR/post-processing, shadows.
+- Level 2/5/map entity placement, exits, and full gameplay loop.
+- Editor foundation and automated renderer screenshot tests.

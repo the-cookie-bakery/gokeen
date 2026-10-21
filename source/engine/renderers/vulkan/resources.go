@@ -97,7 +97,7 @@ func (r *Renderer) createPipeline() error {
 	defer C.free(frag)
 	var layout C.VkPipelineLayout
 	var pipeline C.VkPipeline
-	res := C.gk_vk_create_mesh_pipeline(r.device, r.renderPass, r.descriptorLayout,
+	res := C.gk_vk_create_mesh_pipeline(r.device, r.renderPass, r.descriptorLayout, nil, 0,
 		(*C.uint32_t)(vert), C.size_t(len(shaders.MeshVertex)),
 		(*C.uint32_t)(frag), C.size_t(len(shaders.MeshFragment)),
 		&layout, &pipeline)
@@ -106,6 +106,27 @@ func (r *Renderer) createPipeline() error {
 	}
 	r.pipelineLayout = layout
 	r.pipeline = pipeline
+	return r.createSkinnedPipeline()
+}
+
+func (r *Renderer) createSkinnedPipeline() error {
+	vert := C.CBytes(shaders.SkinnedVertex)
+	defer C.free(vert)
+	frag := C.CBytes(shaders.MeshFragment)
+	defer C.free(frag)
+	var layout C.VkPipelineLayout
+	var pipeline C.VkPipeline
+	res := C.gk_vk_create_mesh_pipeline(r.device, r.renderPass, r.descriptorLayout, r.boneLayout, 1,
+		(*C.uint32_t)(vert), C.size_t(len(shaders.SkinnedVertex)),
+		(*C.uint32_t)(frag), C.size_t(len(shaders.MeshFragment)),
+		&layout, &pipeline)
+	if res != 0 {
+		return fmt.Errorf("skinned pipeline: %d", int(res))
+	}
+	r.skinnedPipeline = pipeline
+	// The skinned pipeline has its own layout because it uses set 1.
+	// Store it separately by reusing pipelineLayout for static and a wrapper.
+	r.skinnedPipelineLayout = layout
 	return nil
 }
 
@@ -134,6 +155,7 @@ func (r *Renderer) UploadScene(store *assets.Store, level *levels.Level) error {
 	r.textures = make(map[assets.TextureID]*gpuTexture)
 	r.draws = nil
 	r.instances = nil
+	r.skinnedInstances = nil
 	if err := r.createWhiteTexture(); err != nil {
 		return err
 	}
@@ -178,7 +200,7 @@ func (r *Renderer) UploadScene(store *assets.Store, level *levels.Level) error {
 			})
 		}
 	}
-	maxSets := len(pending) + 32
+	maxSets := len(pending) + 128
 	if maxSets == 0 {
 		maxSets = 1
 	}
@@ -458,6 +480,13 @@ func (r *Renderer) uploadBuffer(data []byte, usage C.VkBufferUsageFlags, buffer 
 func (r *Renderer) destroyScene() {
 	if r.device == nil {
 		return
+	}
+	for _, inst := range r.skinnedInstances {
+		inst.destroy()
+	}
+	r.skinnedInstances = nil
+	if r.bonePool != nil {
+		C.vkResetDescriptorPool(r.device, r.bonePool, 0)
 	}
 	for _, mesh := range r.meshes {
 		if mesh == nil {

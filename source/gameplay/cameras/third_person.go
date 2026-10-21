@@ -23,7 +23,7 @@ func NewThirdPerson(target maths.Vec3) *ThirdPerson {
 		Distance:    10,
 		Height:      2,
 		Yaw:         0,
-		Pitch:       -0.2,
+		Pitch:       0,
 		Sensitivity: 0.002,
 		MinPitch:    -1.2,
 		MaxPitch:    0.9,
@@ -31,7 +31,7 @@ func NewThirdPerson(target maths.Vec3) *ThirdPerson {
 }
 
 func (c *ThirdPerson) Look(dx, dy float32) {
-	c.Yaw -= dx * c.Sensitivity
+	c.Yaw += dx * c.Sensitivity
 	c.Pitch -= dy * c.Sensitivity
 	if c.Pitch < c.MinPitch {
 		c.Pitch = c.MinPitch

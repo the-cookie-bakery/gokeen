@@ -42,7 +42,10 @@ int32_t gk_vk_allocate_descriptor_sets(VkDevice device, VkDescriptorPool pool, V
 void gk_vk_update_descriptors(VkDevice device, VkDescriptorSet set, VkBuffer uniform_buffer,
                               VkImageView base_view, VkSampler base_sampler,
                               VkImageView lightmap_view, VkSampler lightmap_sampler);
+int32_t gk_vk_create_descriptor_layout_bones(VkDevice device, VkDescriptorSetLayout *out);
+void gk_vk_update_bone_descriptor(VkDevice device, VkDescriptorSet set, VkBuffer bone_buffer);
 int32_t gk_vk_create_mesh_pipeline(VkDevice device, VkRenderPass pass, VkDescriptorSetLayout set_layout,
+                                   VkDescriptorSetLayout bone_layout, int32_t skinned,
                                    const uint32_t *vert_code, size_t vert_size,
                                    const uint32_t *frag_code, size_t frag_size,
                                    VkPipelineLayout *layout, VkPipeline *pipeline);

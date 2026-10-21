@@ -639,6 +639,37 @@ void gk_vk_update_descriptors(VkDevice device, VkDescriptorSet set, VkBuffer uni
     vkUpdateDescriptorSets(device, 3, writes, 0, NULL);
 }
 
+int32_t gk_vk_create_descriptor_layout_bones(VkDevice device, VkDescriptorSetLayout *out) {
+    VkDescriptorSetLayoutBinding binding;
+    memset(&binding, 0, sizeof(binding));
+    binding.binding = 0;
+    binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    binding.descriptorCount = 1;
+    binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    VkDescriptorSetLayoutCreateInfo info;
+    memset(&info, 0, sizeof(info));
+    info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    info.bindingCount = 1;
+    info.pBindings = &binding;
+    return (int32_t)vkCreateDescriptorSetLayout(device, &info, NULL, out);
+}
+
+void gk_vk_update_bone_descriptor(VkDevice device, VkDescriptorSet set, VkBuffer bone_buffer) {
+    VkDescriptorBufferInfo buffer_info;
+    memset(&buffer_info, 0, sizeof(buffer_info));
+    buffer_info.buffer = bone_buffer;
+    buffer_info.range = VK_WHOLE_SIZE;
+    VkWriteDescriptorSet write;
+    memset(&write, 0, sizeof(write));
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = set;
+    write.dstBinding = 0;
+    write.descriptorCount = 1;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write.pBufferInfo = &buffer_info;
+    vkUpdateDescriptorSets(device, 1, &write, 0, NULL);
+}
+
 static int32_t gk_create_shader(VkDevice device, const uint32_t *code, size_t size, VkShaderModule *out) {
     VkShaderModuleCreateInfo info;
     memset(&info, 0, sizeof(info));
@@ -649,6 +680,7 @@ static int32_t gk_create_shader(VkDevice device, const uint32_t *code, size_t si
 }
 
 int32_t gk_vk_create_mesh_pipeline(VkDevice device, VkRenderPass pass, VkDescriptorSetLayout set_layout,
+                                   VkDescriptorSetLayout bone_layout, int32_t skinned,
                                    const uint32_t *vert_code, size_t vert_size,
                                    const uint32_t *frag_code, size_t frag_size,
                                    VkPipelineLayout *layout, VkPipeline *pipeline) {
@@ -678,20 +710,22 @@ int32_t gk_vk_create_mesh_pipeline(VkDevice device, VkRenderPass pass, VkDescrip
     binding.stride = 64;
     binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    VkVertexInputAttributeDescription attrs[5];
+    VkVertexInputAttributeDescription attrs[7];
     memset(attrs, 0, sizeof(attrs));
     attrs[0].location = 0; attrs[0].binding = 0; attrs[0].format = VK_FORMAT_R32G32B32_SFLOAT; attrs[0].offset = 0;
     attrs[1].location = 1; attrs[1].binding = 0; attrs[1].format = VK_FORMAT_R32G32B32_SFLOAT; attrs[1].offset = 12;
     attrs[2].location = 2; attrs[2].binding = 0; attrs[2].format = VK_FORMAT_R32G32_SFLOAT; attrs[2].offset = 24;
     attrs[3].location = 3; attrs[3].binding = 0; attrs[3].format = VK_FORMAT_R32G32_SFLOAT; attrs[3].offset = 32;
     attrs[4].location = 4; attrs[4].binding = 0; attrs[4].format = VK_FORMAT_R8G8B8A8_UNORM; attrs[4].offset = 40;
+    attrs[5].location = 5; attrs[5].binding = 0; attrs[5].format = VK_FORMAT_R8G8B8A8_UINT; attrs[5].offset = 44;
+    attrs[6].location = 6; attrs[6].binding = 0; attrs[6].format = VK_FORMAT_R32G32B32A32_SFLOAT; attrs[6].offset = 48;
 
     VkPipelineVertexInputStateCreateInfo vertex_input;
     memset(&vertex_input, 0, sizeof(vertex_input));
     vertex_input.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertex_input.vertexBindingDescriptionCount = 1;
     vertex_input.pVertexBindingDescriptions = &binding;
-    vertex_input.vertexAttributeDescriptionCount = 5;
+    vertex_input.vertexAttributeDescriptionCount = skinned ? 7 : 5;
     vertex_input.pVertexAttributeDescriptions = attrs;
 
     VkPipelineInputAssemblyStateCreateInfo input_assembly;
@@ -747,11 +781,12 @@ int32_t gk_vk_create_mesh_pipeline(VkDevice device, VkRenderPass pass, VkDescrip
     push.offset = 0;
     push.size = 96;
 
+    VkDescriptorSetLayout set_layouts[2] = {set_layout, bone_layout};
     VkPipelineLayoutCreateInfo layout_info;
     memset(&layout_info, 0, sizeof(layout_info));
     layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    layout_info.setLayoutCount = 1;
-    layout_info.pSetLayouts = &set_layout;
+    layout_info.setLayoutCount = skinned ? 2 : 1;
+    layout_info.pSetLayouts = set_layouts;
     layout_info.pushConstantRangeCount = 1;
     layout_info.pPushConstantRanges = &push;
     res = (int32_t)vkCreatePipelineLayout(device, &layout_info, NULL, layout);

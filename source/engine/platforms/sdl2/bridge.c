@@ -3,11 +3,23 @@
 #include <SDL_vulkan.h>
 #include <vulkan/vulkan.h>
 #include <string.h>
+#include <stdlib.h>
+
+static SDL_Window *captured_window;
+static int sdl_active;
+static void gk_release_mouse_impl(SDL_Window *window);
+static void gk_atexit_handler(void) {
+    if (sdl_active && captured_window) {
+        gk_release_mouse_impl(captured_window);
+    }
+}
 
 int gk_init(void) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO) != 0) {
         return -1;
     }
+    sdl_active = 1;
+    atexit(gk_atexit_handler);
     return 0;
 }
 
@@ -30,6 +42,10 @@ void gk_destroy_window(SDL_Window *window) {
 }
 
 void gk_quit(void) {
+    if (captured_window) {
+        gk_release_mouse_impl(captured_window);
+    }
+    sdl_active = 0;
     SDL_Quit();
 }
 
@@ -103,4 +119,50 @@ void gk_window_size(SDL_Window *window, int *width, int *height) {
 
 int gk_set_relative_mouse(SDL_Window *window, int enabled) {
     return SDL_SetRelativeMouseMode(enabled ? SDL_TRUE : SDL_FALSE);
+}
+
+void gk_set_title(SDL_Window *window, const char *title) {
+    SDL_SetWindowTitle(window, title);
+}
+
+void gk_show_cursor(int show) {
+    SDL_ShowCursor(show ? SDL_ENABLE : SDL_DISABLE);
+    SDL_PumpEvents();
+}
+
+void gk_capture_mouse(SDL_Window *window) {
+    if (!window) return;
+    captured_window = window;
+    SDL_SetRelativeMouseMode(SDL_TRUE);
+}
+
+static void gk_release_mouse_impl(SDL_Window *window) {
+    SDL_SetRelativeMouseMode(SDL_FALSE);
+    if (window) {
+        SDL_SetWindowGrab(window, SDL_FALSE);
+#if SDL_VERSION_ATLEAST(2, 0, 16)
+        SDL_SetWindowMouseGrab(window, SDL_FALSE);
+#endif
+        int w = 0, h = 0;
+        SDL_GetWindowSize(window, &w, &h);
+        if (w > 0 && h > 0) {
+            SDL_WarpMouseInWindow(window, w / 2, h / 2);
+        }
+    }
+    static SDL_Cursor *arrow_cursor;
+    if (!arrow_cursor) {
+        arrow_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
+    }
+    if (arrow_cursor) {
+        SDL_SetCursor(arrow_cursor);
+    }
+    SDL_ShowCursor(SDL_ENABLE);
+    SDL_PumpEvents();
+}
+
+void gk_release_mouse(SDL_Window *window) {
+    gk_release_mouse_impl(window);
+    if (captured_window == window) {
+        captured_window = NULL;
+    }
 }
