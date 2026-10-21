@@ -119,11 +119,17 @@ func (r *Renderer) AddSkinnedInstance(store *assets.Store, meshID assets.MeshID,
 }
 
 func (s *SkinnedInstance) SetClip(name string) {
-	if s == nil || s.clipName == name {
+	if s == nil {
 		return
 	}
 	clip, ok := s.clips[name]
 	if !ok {
+		return
+	}
+	if s.clipName == name {
+		if !clip.Loop && clip.Duration > 0 && s.time >= clip.Duration {
+			s.time = 0
+		}
 		return
 	}
 	s.clipName = name

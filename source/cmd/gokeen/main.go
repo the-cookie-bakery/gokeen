@@ -29,6 +29,8 @@ import (
 	"gokeen/levels"
 )
 
+const playerModelScale = float32(0.036)
+
 type config struct {
 	width       int
 	height      int
@@ -39,6 +41,7 @@ type config struct {
 	pogo        bool
 	autofire    bool
 	spawnAtExit bool
+	die         bool
 }
 
 type gameRuntime struct {
@@ -84,15 +87,16 @@ func main() {
 	title := flag.String("title", "GoKeen", "window title")
 	levelID := flag.String("level", "level1", "embedded level id")
 	fly := flag.Bool("fly", false, "use the free-fly viewer camera instead of the player")
-	pogo := flag.Bool("pogo", false, "start with the pogo stick enabled")
+	pogo := flag.Bool("pogo", false, "start with the pogo stick equipped and deployed")
 	autofire := flag.Bool("autofire", false, "hold the laser trigger (debug)")
 	spawnAtExit := flag.Bool("spawn-at-exit", false, "spawn on the first exit trigger (debug)")
+	die := flag.Bool("die", false, "show the legacy death model (debug)")
 	flag.Parse()
 
 	cfg := config{
 		width: *width, height: *height, fullscreen: *fullscreen,
 		frames: *frames, title: *title, fly: *fly, pogo: *pogo, autofire: *autofire,
-		spawnAtExit: *spawnAtExit,
+		spawnAtExit: *spawnAtExit, die: *die,
 	}
 	if err := run(cfg, levels.LevelID(*levelID)); err != nil {
 		fmt.Fprintln(os.Stderr, "gokeen:", err)
@@ -131,6 +135,7 @@ func run(cfg config, start levels.LevelID) error {
 
 	player := players.New(maths.Vec3{})
 	player.PogoEnabled = cfg.pogo
+	player.PogoDeployed = cfg.pogo
 	player.HasGun = true
 	player.Ammo = 50
 	rt := &gameRuntime{
@@ -176,7 +181,9 @@ func (g *gameRuntime) playLevel(id levels.LevelID) (next string, quit bool, err 
 	}
 	third := cameras.NewThirdPerson(g.player.Center())
 	var playerInstance *vulkan.SkinnedInstance
+	var playerPogoInstance *vulkan.SkinnedInstance
 	var gunInstance *vulkan.MeshInstance
+	var playerModelOffsetY, pogoModelOffsetY, pogoRise, playerMinY, deathBoneDrop float32
 	var enemiesList []activeEnemy
 	var pickupList []activePickup
 	var exitList []activeExit
@@ -199,6 +206,46 @@ func (g *gameRuntime) playLevel(id levels.LevelID) (next string, quit bool, err 
 		}
 		playerInstance.SetClip("walk")
 		playerInstance.SetPaused(true)
+		playerPogoInstance, err = g.renderer.AddSkinnedInstance(g.store, "player_keen_pogo", map[string]animations.ClipID{
+			"pogo": "clip_keen_pogo",
+		})
+		if err != nil {
+			return "", false, fmt.Errorf("add pogo player mesh: %w", err)
+		}
+		playerPogoInstance.SetClip("pogo")
+		playerPogoInstance.SetTransform(maths.M4Scale(maths.Vec3{}))
+		playerMesh, err := g.store.Mesh("player_keen_skinned")
+		if err != nil {
+			return "", false, err
+		}
+		pogoMesh, err := g.store.Mesh("player_keen_pogo")
+		if err != nil {
+			return "", false, err
+		}
+		// The pogo mesh includes the stick below the feet. Offset it by its own
+		// bounds so the stick touches the ground, then raise the camera target by
+		// the extra height so Keen remains framed while standing on it.
+		playerMinY = playerMesh.Bounds.Min.Y
+		playerModelOffsetY = -playerMinY * playerModelScale
+		pogoModelOffsetY = -pogoMesh.Bounds.Min.Y * playerModelScale
+		pogoRise = pogoModelOffsetY - playerModelOffsetY
+		// The death clip squashes everything below ShoulderC. Compute how far
+		// that lifts the feet so the model can be lowered to keep them grounded.
+		skeleton, err := g.store.Skeleton(playerMesh.Skeleton)
+		if err != nil {
+			return "", false, err
+		}
+		local := make([]maths.Transform, len(skeleton.Bones))
+		for i, bone := range skeleton.Bones {
+			local[i] = bone.Local
+		}
+		worlds := animations.BuildPose(&skeleton, local).World
+		for i, bone := range skeleton.Bones {
+			if bone.Name == "ShoulderC" {
+				deathBoneDrop = (worlds[i].TransformPoint(maths.Vec3{}).Y - playerMinY) * playerModelScale
+				break
+			}
+		}
 		gunInstance, err = g.renderer.AddMeshInstance(g.store, "item_gun")
 		if err != nil {
 			return "", false, fmt.Errorf("add gun mesh: %w", err)
@@ -277,6 +324,10 @@ func (g *gameRuntime) playLevel(id levels.LevelID) (next string, quit bool, err 
 		fmt.Println("debug: spawning at exit")
 	}
 	animTime := float32(0)
+	deathStarted := false
+	deathActive := false
+	deathElapsed := float32(0)
+	deathTimer := float32(0)
 	running := true
 	for running {
 		select {
@@ -295,7 +346,14 @@ func (g *gameRuntime) playLevel(id levels.LevelID) (next string, quit bool, err 
 				g.window.ReleaseMouse()
 				return "", true, nil
 			case sdl2.EventKey:
+				wasDown := g.keys[event.Key]
 				g.keys[event.Key] = event.Action == 1
+				if event.Action == 1 && !wasDown && (event.Key == 1073742048 || event.Key == 1073742050) {
+					g.player.TogglePogo()
+				}
+				if event.Action == 1 && !wasDown && event.Key == int('k') {
+					g.player.Health = 0
+				}
 				if event.Action == 1 && event.Key == 27 {
 					g.window.ReleaseMouse()
 					return "", true, nil
@@ -343,42 +401,97 @@ func (g *gameRuntime) playLevel(id levels.LevelID) (next string, quit bool, err 
 			if g.keys[int('d')] || g.keys[1073741903] {
 				input.Strafe = 1
 			}
-			input.Jump = g.keys[int(' ')] || g.keys[1073742048]
-			input.Pogo = input.Jump
-			g.player.Update(dt, input, collision)
-			moving := input.Forward != 0 || input.Strafe != 0
-			if shootTimer > 0 {
-				shootTimer -= dt
-				playerInstance.SetClip("shoot")
-				playerInstance.SetPaused(false)
-			} else if !g.player.Grounded {
-				playerInstance.SetClip("jump")
-				playerInstance.SetPaused(false)
-			} else if moving {
-				playerInstance.SetClip("walk")
-				playerInstance.SetPaused(false)
-			} else {
-				playerInstance.SetClip("walk")
-				playerInstance.SetPaused(true)
+			input.Jump = g.keys[int(' ')]
+			if !deathActive && (g.cfg.die || g.player.Health <= 0) {
+				deathActive = true
+				deathStarted = false
+				deathElapsed = 0
+				deathTimer = 1.2
 			}
-			playerInstance.SetHeadPitch(clamp(-third.Pitch, -0.7, 0.7))
-			playerInstance.Update(dt)
-			playerModel := g.player.ModelMatrix(maths.V3(0, 2.03, 0), 0.036)
-			playerInstance.SetTransform(playerModel)
+			if deathActive {
+				g.player.Update(dt, players.Input{}, collision)
+			} else {
+				g.player.Update(dt, input, collision)
+			}
 			aim := third.Forward()
 			up := maths.V3(0, 1, 0)
 			right := aim.Cross(up).Normalize()
-			gunPos := g.player.Position.Add(maths.V3(0, g.player.Height*0.55, 0)).
-				Add(right.Scale(0.5)).Add(aim.Scale(0.3))
-			if handPos, ok := playerInstance.BoneModelPosition("HandR"); ok {
-				gunPos = playerModel.TransformPoint(handPos).Add(aim.Scale(0.18)).Add(right.Scale(-0.08))
+			pogoActive := !deathActive && g.player.PogoEnabled && g.player.PogoDeployed
+			if shootTimer > 0 {
+				shootTimer -= dt
+			}
+			var gunPos maths.Vec3
+			if deathActive {
+				const deathSquashAmount = float32(0.30)
+				deathElapsed += dt
+				squashT := clamp(deathElapsed/0.15, 0, 1)
+				deathSquash := float32(1) + (deathSquashAmount-1)*squashT
+				if !deathStarted {
+					playerInstance.SetClip("die")
+					playerInstance.SetPaused(false)
+					deathStarted = true
+				}
+				playerInstance.Update(dt)
+				deathDrop := (1 - deathSquash) * deathBoneDrop
+				deathOffsetY := playerModelOffsetY - deathDrop
+				deathModel := g.player.ModelMatrix(maths.V3(0, deathOffsetY, 0), playerModelScale)
+				playerInstance.SetTransform(deathModel)
+				playerPogoInstance.SetTransform(maths.M4Scale(maths.Vec3{}))
+				gunInstance.SetTransform(maths.M4Scale(maths.Vec3{}))
+				gunPos = g.player.Center()
+				if !g.cfg.die {
+					deathTimer -= dt
+					if deathTimer <= 0 {
+						g.player.Respawn()
+						g.player.Health = g.player.MaxHealth
+						deathActive = false
+						deathStarted = false
+						deathElapsed = 0
+					}
+				}
+			} else if pogoActive {
+				playerPogoInstance.SetClip("pogo")
+				playerPogoInstance.SetPaused(true)
+				playerPogoInstance.SetHeadPitch(clamp(-third.Pitch, -0.7, 0.7))
+				playerPogoInstance.Update(dt)
+				pogoModel := g.player.ModelMatrix(maths.V3(0, pogoModelOffsetY, 0), playerModelScale)
+				playerPogoInstance.SetTransform(pogoModel)
+				playerInstance.SetTransform(maths.M4Scale(maths.Vec3{}))
+				gunInstance.SetTransform(maths.M4Scale(maths.Vec3{}))
+				gunPos = g.player.Position.Add(maths.V3(0, g.player.Height*0.55+pogoRise, 0)).
+					Add(right.Scale(0.5)).Add(aim.Scale(0.3))
+			} else {
+				moving := input.Forward != 0 || input.Strafe != 0
+				if shootTimer > 0 {
+					playerInstance.SetClip("shoot")
+					playerInstance.SetPaused(false)
+				} else if !g.player.Grounded {
+					playerInstance.SetClip("jump")
+					playerInstance.SetPaused(false)
+				} else if moving {
+					playerInstance.SetClip("walk")
+					playerInstance.SetPaused(false)
+				} else {
+					playerInstance.SetClip("walk")
+					playerInstance.SetPaused(true)
+				}
+				playerInstance.SetHeadPitch(clamp(-third.Pitch, -0.7, 0.7))
+				playerInstance.Update(dt)
+				playerModel := g.player.ModelMatrix(maths.V3(0, playerModelOffsetY, 0), playerModelScale)
+				playerInstance.SetTransform(playerModel)
+				playerPogoInstance.SetTransform(maths.M4Scale(maths.Vec3{}))
+				gunPos = g.player.Position.Add(maths.V3(0, g.player.Height*0.55, 0)).
+					Add(right.Scale(0.5)).Add(aim.Scale(0.3))
+				if handPos, ok := playerInstance.BoneModelPosition("HandR"); ok {
+					gunPos = playerModel.TransformPoint(handPos).Add(aim.Scale(0.18)).Add(right.Scale(-0.08))
+				}
+				gunModel := maths.M4Translate(gunPos).
+					Mul(maths.M4Rotation(quatFromForward(aim))).
+					Mul(maths.M4Scale(maths.V3(0.8, 0.8, 0.8)))
+				gunInstance.SetTransform(gunModel)
 			}
 			muzzle := gunPos.Add(aim.Scale(0.5))
 			shotDir := aim
-			gunModel := maths.M4Translate(gunPos).
-				Mul(maths.M4Rotation(quatFromForward(shotDir))).
-				Mul(maths.M4Scale(maths.V3(0.8, 0.8, 0.8)))
-			gunInstance.SetTransform(gunModel)
 			for _, active := range enemiesList {
 				active.enemy.Update(dt, collision)
 				active.instance.SetTransform(active.enemy.ModelMatrix(maths.V3(0, 0.331, 0), 0.7))
@@ -442,7 +555,7 @@ func (g *gameRuntime) playLevel(id levels.LevelID) (next string, quit bool, err 
 				}
 				slot.instance.SetTransform(beamMatrix(current.Sub(dir.Scale(0.75)), current.Add(dir.Scale(0.75)), 0.2))
 			}
-			trigger := g.keys[int('f')] || g.mouse[1] || g.cfg.autofire
+			trigger := !deathActive && (g.keys[int('f')] || g.mouse[1] || g.cfg.autofire)
 			if trigger && laserCooldown <= 0 && g.player.HasGun && g.player.Ammo > 0 {
 				var slot *projectileSlot
 				for i := range projectiles {
@@ -460,6 +573,9 @@ func (g *gameRuntime) playLevel(id levels.LevelID) (next string, quit bool, err 
 				}
 			}
 			third.Target = g.player.Center()
+			if pogoActive {
+				third.Target = third.Target.Add(maths.V3(0, pogoRise, 0))
+			}
 			if w > 0 && h > 0 {
 				vp, pos := third.ViewProjection(float32(w) / float32(h))
 				g.renderer.SetCamera(vp, pos)
@@ -478,8 +594,12 @@ func (g *gameRuntime) playLevel(id levels.LevelID) (next string, quit bool, err 
 				}
 			}
 		}
-		g.window.SetTitle(fmt.Sprintf("GoKeen | %s | HP %d | Ammo %d | Score %d | Lives %d | Pogo %v",
-			level.ID, g.player.Health, g.player.Ammo, g.player.Score, g.player.Lives, g.player.PogoEnabled))
+		state := ""
+		if deathActive {
+			state = " | DEAD"
+		}
+		g.window.SetTitle(fmt.Sprintf("GoKeen | %s | HP %d | Ammo %d | Score %d | Lives %d | Pogo %v%s",
+			level.ID, g.player.Health, g.player.Ammo, g.player.Score, g.player.Lives, g.player.PogoDeployed, state))
 		if err := g.renderer.Frame(); err != nil {
 			if errors.Is(err, vulkan.ErrOutOfDate) {
 				w, h := g.window.Size()

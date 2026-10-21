@@ -61,9 +61,11 @@ Status values in the `Verified` column:
 | M4-02 | Step-up/slope/ledge tuning | Physics/gameplay tests | partial | Basic capsule movement/landing works; tuning pending. |
 | M4-04 | Run simulation on fixed 120 Hz tick | Determinism/replay test | partial | Clock exists; runtime still uses variable frame delta. |
 | M4-06 | Third-person spring-arm collision | Camera collision tests + visual | partial | Camera orbit works; no obstruction handling. |
-| M4-10 | Death animation and game-over flow | Gameplay test | partial | Fall respawn/lives work; death/game-over UI pending. |
-| M4-13 | Animation blending/transitions | Animation tests + visual | no | Clips snap between states; death clip not wired. |
+| M4-10 | Death animation and game-over flow | Gameplay test | partial | Retargeted `KeenDie` squash/twitch plays for 1.2s, then respawns; no game-over/life-exhaustion state. |
+| M4-13 | Animation blending/transitions | Animation tests + visual | partial | Death/pogo clips are wired; state changes still snap with no cross-fade. |
 | M4-14 | Refine gun grip on hand bone | Visual check | partial | Gun follows `HandR`; exact grip offset/rotation still tuned manually. |
+| M4-15 | Pogo attachment/animation | Importer test + visual check | partial | `KeenPogo.3ds` skinned to labelled skeleton with a `Pogo` bone; bind-pose clip keeps the feet planted; no hand IK yet. |
+| M4-16 | Retarget legacy `KeenDie` rig | Importer test + visual check | partial | `joint1..5` mapped to `PelvisC`/ankle/foot bones; body squash + inverse `Head` scale keep the helmet full-size; no authored full-body death clip. |
 
 ## Level 1 Vertical Slice
 
@@ -116,6 +118,9 @@ gokeen -frames 3                 PASS
 gokeen -spawn-at-exit            Level 1 -> Level 2 PASS
 gokeen -autofire                 projectile/gun visual check PASS
 gokeen + hold W                  skinned walk animation visual check PASS
+gokeen -pogo                     pogo attachment/toggle visual check PASS
+gokeen -die                      retargeted death/squash visual check PASS
+gokeen + press K                 death pose + 1.2s respawn check PASS
 ESC / SIGTERM exit               cursor-release smoke check PASS
 ```
 

@@ -96,8 +96,32 @@ func run(game, packPath, levelDir, sourceDir, reportPath, backportPath string, f
 		{Name: "walk", File: "Keen3f/KeenWalk.b3d", Loop: true},
 		{Name: "shoot", File: "Keen3f/KeenShoot.b3d", Loop: false},
 		{Name: "jump", File: "Keen3f/KeenJump.b3d", Loop: false},
+	}, true); err != nil {
+		return err
+	}
+	fmt.Println("importing skinned pogo model player_keen_pogo")
+	if _, err := conv.ImportKeenPogo("Keen3f/KeenPogo.3ds", "player_keen_pogo", "skel_keen"); err != nil {
+		return err
+	}
+	if err := conv.AddBindPoseClip("clip_keen_pogo", "pogo", 0, true); err != nil {
+		return err
+	}
+	fmt.Println("importing skinned death model player_keen_dead")
+	if _, err := conv.ImportSkinnedB3D("Keen3f/KeenDie.b3d", "player_keen_dead", "skel_keen_dead", "keen_dead", []importer.ClipSpec{
 		{Name: "die", File: "Keen3f/KeenDie.b3d", Loop: false},
 	}, true); err != nil {
+		return err
+	}
+	if err := conv.RetargetClip("clip_keen_dead_die", "skel_keen_dead", "skel_keen", "clip_keen_die", "die", map[string]string{
+		"joint1": "PelvisC",
+		"joint2": "AnkleR",
+		"joint3": "FootR",
+		"joint4": "AnkleL",
+		"joint5": "FootL",
+	}); err != nil {
+		return err
+	}
+	if err := conv.AddDeathSquash("clip_keen_die", "skel_keen", 0.30, 0.15, 1.2); err != nil {
 		return err
 	}
 	if err := conv.Pack().Validate(); err != nil {

@@ -11,7 +11,6 @@ type Input struct {
 	Forward float32
 	Strafe  float32
 	Jump    bool
-	Pogo    bool
 	Yaw     float32
 }
 
@@ -28,6 +27,7 @@ type Controller struct {
 	Grounded       bool
 	Yaw            float32
 	PogoEnabled    bool
+	PogoDeployed   bool
 	PogoSpeed      float32
 	Health         int
 	MaxHealth      int
@@ -55,6 +55,12 @@ func New(position maths.Vec3) *Controller {
 		MaxHealth:    100,
 		Lives:        3,
 		Spawn:        position,
+	}
+}
+
+func (c *Controller) TogglePogo() {
+	if c.PogoEnabled {
+		c.PogoDeployed = !c.PogoDeployed
 	}
 }
 
@@ -87,7 +93,11 @@ func (c *Controller) Update(dt float32, in Input, world *physics.Mesh) {
 	}
 	c.Velocity.Y -= c.Gravity * dt
 	if c.Grounded && in.Jump {
-		c.Velocity.Y = c.JumpSpeed
+		if c.PogoEnabled && c.PogoDeployed {
+			c.Velocity.Y = c.PogoSpeed
+		} else {
+			c.Velocity.Y = c.JumpSpeed
+		}
 		c.Grounded = false
 	}
 	capsule := physics.NewCapsule(
@@ -103,12 +113,7 @@ func (c *Controller) Update(dt float32, in Input, world *physics.Mesh) {
 	c.Position = capsule.A.Sub(maths.V3(0, c.Radius, 0))
 	c.Grounded = c.groundCheck(world, capsule)
 	if c.Grounded && c.Velocity.Y <= 0 {
-		if c.PogoEnabled && in.Pogo {
-			c.Velocity.Y = c.PogoSpeed
-			c.Grounded = false
-		} else {
-			c.Velocity.Y = 0
-		}
+		c.Velocity.Y = 0
 	}
 	if c.Position.Y < -100 {
 		c.Respawn()

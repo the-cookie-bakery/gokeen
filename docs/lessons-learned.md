@@ -98,8 +98,9 @@ Fix:
 - The base file's node local transforms form the bind pose.
 - Clip keys override local transforms; positions, scales, and quaternions all
   need coordinate conversion.
-- `KeenDie.b3d` currently yields no usable tracks; do not assume every clip has
-  animation data.
+- `KeenDie.b3d` uses a different `ROOT` + `joint1..5` rig. Mapping its nodes by
+  name onto the KeenWalk skeleton produces no tracks; retarget the local joint
+  deltas manually (see 1.11).
 - There is no animation blending/transition controller yet.
 
 ### 1.8 Units and scales differ wildly
@@ -123,7 +124,59 @@ Fix:
   matrix), then mirrored for the engine. The combined transform has positive
   determinant, so its winding handling differs from B3D.
 
-### 1.10 Texture paths
+### 1.10 KeenPogo is a static 3DS pose, not a rig
+
+- The legacy executable loads `items\pogo.3ds` for the pogo pickup and
+  `Keen3f\keenjump.b3d` for the jump; it does not load `KeenPogo.3ds`.
+- `KeenPogo.3ds` is nevertheless a useful authored Keen-on-pogo pose with the
+  pogo stick included.
+- It has no bones. To backport it correctly, skin it to the labelled `skel_keen`:
+  map materials/objects to bones (`Helmet`/`Face`/`Skin` to `Head`, `Hand` by
+  side to `HandL`/`HandR`, `Watch` to `WristR`, `Shoe` by side to `FootL`/`FootR`,
+  body materials to the pelvis/spine chain, pogo materials to a root-child
+  `Pogo` bone).
+- 3DS Keen units are about 24.5x smaller than B3D Keen units. Align the pogo mesh
+  into B3D space with a uniform scale and translation before skinning.
+- The pogo mesh is authored in the pogo pose, so do not play the walk/jump clips
+  on it. Use an empty bind-pose clip so the feet stay planted; the hands stay on
+  the handle.
+- The pogo stick bottom is about 1.0 m below the feet at runtime scale. Place the
+  mesh so its bounds' minimum Y is at the player position, and raise the camera
+  target while deployed.
+
+### 1.11 KeenDie is a squash shell, not a full-body rig
+
+- `KeenDie.b3d` contains only the head/helmet/face/skin shell and shoes; it has
+  no torso, arms, jeans, shirt, or watch groups.
+- Its rig is `ROOT` -> `joint1` -> `joint2` -> `joint3` plus
+  `joint1` -> `joint4` -> `joint5`. Vertices weighted to `joint2`/`joint4` are
+  the shoes/feet; unweighted vertices bind to the mesh root, matching Blitz3D's
+  `bones[0]` rule in `loader_b3d.cpp`/`surface.cpp`.
+- The legacy animation only keys `joint1`, `joint2`, `joint4`, and the unweighted
+  head/body does not move. Treat the mesh as a squashed death pose, not a
+  full-body death animation.
+- Retarget the rotation deltas rather than copying absolute local quaternions:
+  `delta = srcBind^-1 * srcKey`, then `dstKey = dstBind * delta`.
+- Geometry mapping used by the importer:
+
+  | Legacy joint | Labelled bone |
+  |---|---|
+  | `joint1` | `PelvisC` |
+  | `joint2` | `AnkleR` |
+  | `joint3` | `FootR` |
+  | `joint4` | `AnkleL` |
+  | `joint5` | `FootL` |
+
+- The legacy head-to-feet span is about 30% of the standing Keen span. Apply the
+  Y squash to `ShoulderC`; `Head` is a child, so inverse-scale `Head` Y by
+  `1/0.30` to keep the helmet/head at its original size.
+- Squashing below `ShoulderC` also lifts the feet. Lower the model by
+  `(1-squash) * (ShoulderC world Y - mesh min Y)` so the feet stay grounded.
+- Keep the legacy `player_keen_dead` mesh/skeleton in the pack for verification;
+  rendering the normal labelled Keen with the retargeted clip and squash avoids
+  the missing torso.
+
+### 1.12 Texture paths
 
 Legacy paths include Windows drive paths, relative `../../..` paths, mixed case,
 and basenames that exist in multiple folders.
@@ -232,7 +285,17 @@ Rule of thumb:
   `Y > 0.5`.
 - The fixed-step clock exists but the runtime still uses variable frame delta.
   This is a known inconsistency.
-- Pogo bounce is integrated as a landing response.
+- Pogo ownership (`PogoEnabled`) and deployment (`PogoDeployed`) are separate.
+  The pickup grants ownership only; Ctrl toggles deployment when owned. Space is
+  the sole bounce input; pogo uses `PogoSpeed` when deployed and `JumpSpeed`
+  otherwise.
+- The runtime swaps to `player_keen_pogo` while deployed. The normal skinned
+  Keen and gun are hidden by zero-scale transforms.
+- Death keeps the normal labelled Keen mesh and plays the retargeted `die` clip.
+  The clip scales `ShoulderC` Y to 0.30 and `Head` Y to 1/0.30, so the body
+  squeezes but the helmet/head stays full-size. The model is lowered to keep the
+  feet grounded. The pose holds for 1.2s, then `Respawn()` runs and health is
+  restored. There is no game-over state when lives reach zero.
 - Projectiles are separate moving entities, not hitscan tracers. They consume
   ammo, collide with geometry/enemies, and stun Yorps.
 - The gun is attached to `HandR`, but the grip offset is still manually tuned.

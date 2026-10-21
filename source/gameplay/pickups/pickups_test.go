@@ -13,6 +13,13 @@ func TestPogoAndGunPickups(t *testing.T) {
 	if !ok || !p.PogoEnabled {
 		t.Fatal("pogo not applied")
 	}
+	if p.PogoDeployed {
+		t.Fatal("pogo should not deploy automatically")
+	}
+	p.TogglePogo()
+	if !p.PogoDeployed {
+		t.Fatal("pogo should deploy after toggle")
+	}
 	if p.Score != 100 {
 		t.Fatalf("pogo score: %d", p.Score)
 	}

@@ -45,7 +45,7 @@ structure. This table is the quick reference for what actually exists.
 | Pogo | Implemented |
 | Laser + ammo | Implemented (moving projectiles) |
 | Yorp actor/stun | Implemented, static model only |
-| Keen skinned animation | Implemented: walk/jump/shoot/die clips |
+| Keen skinned animation | Implemented: walk/jump/shoot/pogo/die clips |
 | Cursor lifecycle | Implemented: release on exit/signals |
 | Pickups/score/key/health | Implemented for a subset of items |
 | Exit/level transition | Implemented for Level 1 -> Level 2 |
@@ -286,10 +286,27 @@ The animation package provides:
 - `Sampler`: linear position/scale and slerp rotation.
 - `Pose`: current local and world bone transforms.
 
-Sampling is implemented and tested. There is no animation controller/blending
-system yet. The legacy B3D parser reads bones and keys, but the importer does not
-yet emit runtime skeletons/clips and there is no Vulkan skinned pipeline. All
-characters currently render as static meshes.
+Sampling is implemented and tested. The importer emits the Keen skeleton and
+walk/jump/shoot clips into the pack, and the Vulkan renderer has a skinned
+pipeline with a per-instance bone palette. Clip switching in the runtime is a
+small state selection with no blending or cross-fade yet.
+
+`KeenPogo.3ds` is imported as a second skinned mesh on the same labelled Keen
+skeleton. Its vertices are weighted rigidly by material: helmet/face/skin to
+`Head`, hands to `HandL`/`HandR`, the watch to `WristR`, shoes to the foot
+bones, jeans/shirt/white to the body chain, and the pogo stick itself to a
+root-child `Pogo` bone. The pogo mesh keeps the authored pogo pose at bind; an
+empty bind-pose clip keeps the feet planted while the hands remain on the
+handle.
+`KeenDie.b3d` is a squashed head+feet death shell with a `ROOT`+`joint1..5`
+rig. Its joint rotation deltas are retargeted onto the labelled skeleton:
+`joint1` to `PelvisC`, `joint2` to `AnkleR`, `joint3` to `FootR`, `joint4` to
+`AnkleL`, and `joint5` to `FootL`. The death clip adds a Y scale of about 0.30
+on `ShoulderC` and an inverse Y scale on `Head`, so the body squeezes together
+while the helmet/head keeps its original size. The runtime lowers the model by
+the resulting foot lift to keep the feet grounded, plays the retargeted `die`
+clip once, and holds the final pose for the death timer. The legacy
+`player_keen_dead` mesh and skeleton remain in the pack for reference/verification.
 
 ## Physics
 

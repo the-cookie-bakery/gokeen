@@ -129,7 +129,8 @@ and future editor agree on property fields.
 - Third-person spring-arm camera with collision.
 - Fixed 120 Hz simulation.
 - Keen: run, jump, pogo bounce, laser, health, lives, respawn.
-- Pogo: equipped item, higher chained bounces.
+- Pogo: equipped item, Ctrl deploy toggle, higher chained bounces, skinned
+  `KeenPogo.3ds` attachment on the labelled Keen skeleton.
 - Laser: ammo, raycast/projectile, impacts, Yorp stun, repeated-hit death.
 - Enemies: Yorp first, then Garg and PatPat.
 - Items: pogo, sign, teddy, lollipop, pizza, soda, gun, key, book, bear.

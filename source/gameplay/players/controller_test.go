@@ -74,26 +74,46 @@ func TestPlayerModelMatrix(t *testing.T) {
 func TestPogoBouncesOnLanding(t *testing.T) {
 	p := New(maths.V3(0, 0.02, 0))
 	p.PogoEnabled = true
+	p.PogoDeployed = true
 	world := floorWorld()
 	for i := 0; i < 20; i++ {
 		p.Update(1.0/120.0, Input{}, world)
 	}
-	p.Update(1.0/120.0, Input{Pogo: true}, world)
-	if p.Velocity.Y <= 0 {
-		t.Fatalf("pogo velocity: %v", p.Velocity.Y)
+	p.Update(1.0/120.0, Input{Jump: true}, world)
+	if p.Velocity.Y <= p.JumpSpeed {
+		t.Fatalf("pogo velocity should exceed jump velocity: %v", p.Velocity.Y)
 	}
 	if p.Grounded {
 		t.Fatal("pogo should leave the ground")
 	}
 }
 
-func TestPogoDisabledBehavesNormally(t *testing.T) {
+func TestPogoRequiresOwnership(t *testing.T) {
 	p := New(maths.V3(0, 0.02, 0))
+	p.PogoDeployed = true
 	world := floorWorld()
 	for i := 0; i < 20; i++ {
-		p.Update(1.0/120.0, Input{Pogo: true}, world)
+		p.Update(1.0/120.0, Input{}, world)
 	}
-	if !p.Grounded {
-		t.Fatalf("player should stay grounded: %+v", p)
+	p.Update(1.0/120.0, Input{Jump: true}, world)
+	if p.Velocity.Y > p.JumpSpeed {
+		t.Fatalf("pogo bounce without ownership: %v", p.Velocity.Y)
+	}
+}
+
+func TestTogglePogoRequiresOwnership(t *testing.T) {
+	p := New(maths.V3(0, 0, 0))
+	p.TogglePogo()
+	if p.PogoDeployed {
+		t.Fatal("pogo deployed without ownership")
+	}
+	p.PogoEnabled = true
+	p.TogglePogo()
+	if !p.PogoDeployed {
+		t.Fatal("pogo should deploy when owned")
+	}
+	p.TogglePogo()
+	if p.PogoDeployed {
+		t.Fatal("pogo should retract when toggled again")
 	}
 }

@@ -453,46 +453,9 @@ func (c *Converter) ImportStatic3DS(legacyRel, meshID, materialPrefix string, fl
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", legacyRel, err)
 	}
-	matIDs := make(map[string]assets.MaterialID)
-	for i, mat := range f.Materials {
-		key := mat.Name
-		if key == "" {
-			key = fmt.Sprintf("__material_%d", i)
-		}
-		id := assets.MaterialID("mat_" + slug(materialPrefix) + "_" + slug(key) + "_" + fmt.Sprint(i))
-		if _, exists := c.pack.Materials[id]; !exists {
-			alpha := float32(1) - mat.Transparency
-			if alpha < 0 {
-				alpha = 0
-			}
-			if alpha > 1 {
-				alpha = 1
-			}
-			am := assets.Material{
-				ID:        id,
-				Name:      key,
-				BaseColor: [4]float32{mat.Diffuse[0], mat.Diffuse[1], mat.Diffuse[2], alpha},
-				Specular:  [3]float32{mat.Specular[0], mat.Specular[1], mat.Specular[2]},
-				Shininess: 16,
-			}
-			if mat.Shininess > 0 {
-				am.Shininess = 8 + mat.Shininess*64
-			}
-			if alpha < 0.999 {
-				am.AlphaMode = assets.AlphaBlend
-			}
-			if mat.Texture != "" {
-				texID, err := c.importTexture(mat.Texture)
-				if err != nil {
-					return "", err
-				}
-				am.Layers = append(am.Layers, assets.MaterialLayer{
-					Texture: texID, UVSet: 0, Blend: assets.BlendReplace,
-				})
-			}
-			c.pack.Materials[id] = am
-		}
-		matIDs[key] = id
+	matIDs, err := c.import3DSMaterials(f, materialPrefix)
+	if err != nil {
+		return "", err
 	}
 	mesh := assets.Mesh{ID: assets.MeshID(meshID), Name: filepath.Base(legacyRel)}
 	conv := swapYZMatrix()
@@ -602,6 +565,51 @@ func (c *Converter) ImportStatic3DS(legacyRel, meshID, materialPrefix string, fl
 		Textures:  len(c.pack.Textures),
 	})
 	return mesh.ID, nil
+}
+
+func (c *Converter) import3DSMaterials(f *threeds.File, materialPrefix string) (map[string]assets.MaterialID, error) {
+	matIDs := make(map[string]assets.MaterialID)
+	for i, mat := range f.Materials {
+		key := mat.Name
+		if key == "" {
+			key = fmt.Sprintf("__material_%d", i)
+		}
+		id := assets.MaterialID("mat_" + slug(materialPrefix) + "_" + slug(key) + "_" + fmt.Sprint(i))
+		if _, exists := c.pack.Materials[id]; !exists {
+			alpha := float32(1) - mat.Transparency
+			if alpha < 0 {
+				alpha = 0
+			}
+			if alpha > 1 {
+				alpha = 1
+			}
+			am := assets.Material{
+				ID:        id,
+				Name:      key,
+				BaseColor: [4]float32{mat.Diffuse[0], mat.Diffuse[1], mat.Diffuse[2], alpha},
+				Specular:  [3]float32{mat.Specular[0], mat.Specular[1], mat.Specular[2]},
+				Shininess: 16,
+			}
+			if mat.Shininess > 0 {
+				am.Shininess = 8 + mat.Shininess*64
+			}
+			if alpha < 0.999 {
+				am.AlphaMode = assets.AlphaBlend
+			}
+			if mat.Texture != "" {
+				texID, err := c.importTexture(mat.Texture)
+				if err != nil {
+					return nil, err
+				}
+				am.Layers = append(am.Layers, assets.MaterialLayer{
+					Texture: texID, UVSet: 0, Blend: assets.BlendReplace,
+				})
+			}
+			c.pack.Materials[id] = am
+		}
+		matIDs[key] = id
+	}
+	return matIDs, nil
 }
 
 func swapYZMatrix() maths.Mat4 {

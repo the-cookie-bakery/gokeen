@@ -47,10 +47,12 @@ go run ./cmd/gokeen -spawn-at-exit -frames 5   # verify Level 1 -> Level 2
 |---|---|
 | `W`, `A`, `S`, `D` | Move |
 | Mouse | Look |
-| `Space` | Jump / pogo bounce |
+| `Space` | Jump / pogo bounce while deployed |
+| `Ctrl` | Deploy or retract the pogo stick (once owned) |
 | `F` or left mouse | Fire laser |
 | `Escape` | Quit |
 
+Debug keys in player mode: `K` kills Keen to verify the death/respawn flow.
 Debug/viewer keys in fly mode: `WASD` move, `Q`/`E` down/up, `I`/`J`/`K`/`L`
 look around.
 
@@ -69,12 +71,12 @@ look around.
 
 Current pack:
 
-- 19 meshes
-- 80 materials
+- 21 meshes
+- 117 materials
 - 35 textures
-- 1 skeleton (25 bones)
-- 4 animation clips (`walk`, `jump`, `shoot`, `die`)
-- approximately 5.9 MiB
+- 2 skeletons (Keen 26 bones, legacy death 6 bones)
+- 6 animation clips (`walk`, `jump`, `shoot`, `pogo`, `die`, legacy `death`)
+- approximately 6.0 MiB
 
 ### Rendering
 
@@ -116,7 +118,21 @@ Not implemented in the renderer yet:
 - Skinned Keen model with walk/jump/shoot animation and head pitch.
 - Character body rotates with camera yaw (correct left/right direction).
 - All skinned vertices are weighted; unweighted vertices bind to the root bone.
-- Pogo pickup enables bouncing.
+- Pogo pickup grants the pogo stick; Ctrl deploys or retracts it.
+- `KeenPogo.3ds` is skinned to the labelled Keen skeleton. Helmet/face/skin
+  map to `Head`, hands/watch to hand/wrist bones, shoes to feet, jeans/shirt to
+  the body chain, and the pogo stick to a dedicated root-child `Pogo` bone.
+- The `pogo` clip is bind-pose only, so Keen stands still on the stick; the
+  bounce comes from the controller/whole-model movement, not foot animation.
+- Pogo bounce uses a higher launch speed and chains while Space is held.
+- The legacy `KeenDie` joint deltas are retargeted from `joint1..5` to
+  `PelvisC`/`AnkleL`/`AnkleR`/`FootL`/`FootR` on the labelled Keen skeleton.
+- Death compresses the body with a `ShoulderC` Y scale while inverse-scaling
+  `Head`, so the body squeezes together but the helmet/head keeps its original
+  size.
+- The normal labelled Keen mesh is used for death rather than the legacy
+  head+feet shell.
+- `K` triggers the death state; after 1.2s Keen respawns and loses a life.
 - Gun pickup adds ammo.
 - Hand-held gun model follows the right-hand bone and aim direction.
 - Moving projectile laser consumes ammo, has a cooldown, and stuns Yorps on hit.
@@ -132,9 +148,9 @@ Not implemented yet:
 - Real HUD/stats art.
 - Audio playback and SFX mixer.
 - Yorp skinned animation, death, and impact sprites.
-- Animation blending/transitions and death clip wiring.
+- Animation blending/transitions between states.
 - Garg, PatPat, and richer enemy AI.
-- Game-over screen and full death flow.
+- Game-over screen and life-exhaustion handling.
 - Save/options UI.
 - Complete entity placement for Levels 2, 5, and the map hub.
 
@@ -171,6 +187,11 @@ go run ./cmd/gokeen -spawn-at-exit -frames 5
                          Level 1 -> Level 2 transition verified
 go run ./cmd/gokeen -autofire
                          moving projectile and gun visual check
+go run ./cmd/gokeen -level level1 -pogo
+                         pogo attachment, Ctrl toggle, and bounce visual check
+go run ./cmd/gokeen -level level1 -die
+                         legacy death animation/retarget visual check
+gokeen + press K          death pose + 1.2s respawn check
 ```
 
 Renderer smoke checks have been performed manually with screenshots on the
@@ -186,6 +207,16 @@ local X11 display. There is no automated pixel test yet.
 - Head pitch follows camera elevation with the correct sign.
 - Gun follows the right hand instead of floating beside the character.
 - Laser shots are moving projectiles that collide with geometry and enemies.
+- `KeenPogo.3ds` is now skinned to the labelled Keen skeleton instead of being
+  attached as an unlabelled root mesh.
+- Ctrl toggles pogo deployment; Space jumps or pogo-bounces while deployed.
+- The pogo mesh follows the player, keeps its bottom on the ground, and keeps
+  the authored standing-on-pogo pose.
+- The legacy `KeenDie` animation is retargeted onto the labelled skeleton and
+  drives a squashed death pose on the normal Keen mesh.
+- The body squash keeps the helmet/head at full size via a compensating `Head`
+  Y scale.
+- `K` triggers death, the death pose holds for 1.2s, then Keen respawns.
 
 ## Known Limitations
 
@@ -193,10 +224,17 @@ local X11 display. There is no automated pixel test yet.
   is currently authored JSON rather than fully recovered from legacy data.
 - The renderer has no alpha/sprite/UI passes, so effects and a real HUD are
   missing.
-- Model animation data is parsed but not converted into runtime clips or drawn
-  with a skeleton.
 - Audio is initialised through SDL but no device/mixer is created yet.
 - Only Keen is animated; Yorps still use a static mesh.
+- The pogo mesh uses rigid material-to-bone weights. Its hands stay in the
+  legacy pogo pose; the pogo clip is bind-pose only, so the feet do not animate
+  and there is no hand IK.
+- `KeenDie.b3d` is a squashed head+feet shell with a `ROOT`+`joint1..5` rig.
+  Its joint deltas are retargeted onto the labelled Keen skeleton. Body squash
+  and head-size compensation are generated scale tracks, not an authored
+  full-body death clip.
+- Death always respawns after the 1.2s death timer; there is no game-over state
+  when lives reach zero.
 - The gun follows the right-hand bone; the exact grip offset can still be refined.
 - Level 2/5/map are renderable but not yet gameplay-complete.
 - The exit trigger uses a forgiving vertical range because the exact legacy
